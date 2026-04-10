@@ -1,0 +1,19 @@
+# News MCP Server Configuration
+
+[server]
+name = "news-mcp"
+version = "0.1.0"
+host = "0.0.0.0"
+port = 8080
+transport_mode = "http"  # Options: stdio, http, sse, hybrid
+
+[poller]
+interval_secs = 3600  # Poll every hour
+enabled = true        # Enable background polling
+
+[cache]
+max_articles_per_category = 100
+
+[logging]
+level = "info"        # Options: trace, debug, info, warn, error
+enable_console = true

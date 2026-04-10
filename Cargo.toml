@@ -1,0 +1,85 @@
+[package]
+name = "news-mcp"
+version = "0.1.0"
+edition = "2021"
+description = "Rust MCP server for fetching news from RSS feeds with background polling and multiple transport modes"
+authors = ["KingingWang <KingingWang@foxmail.com>"]
+license = "MIT"
+repository = "https://github.com/KingingWang/news-mcp"
+readme = "README.md"
+keywords = ["mcp", "news", "rss", "server", "feed"]
+categories = ["api-bindings", "web-programming", "network-programming"]
+
+[features]
+default = ["server", "stdio", "macros", "cache-memory", "logging"]
+server = ["rust-mcp-sdk/server"]
+hyper-server = ["rust-mcp-sdk/hyper-server"]
+streamable-http = ["rust-mcp-sdk/streamable-http"]
+sse = ["rust-mcp-sdk/sse"]
+stdio = ["rust-mcp-sdk/stdio"]
+macros = ["rust-mcp-sdk/macros"]
+cache-memory = []
+logging = []
+
+[dependencies]
+# MCP core dependencies
+rust-mcp-sdk = { version = "0.9", default-features = false, features = ["server", "macros", "stdio", "hyper-server", "streamable-http", "sse"] }
+
+# HTTP client
+reqwest = { version = "0.13", features = ["json"] }
+reqwest-middleware = "0.5"
+reqwest-retry = "0.9"
+
+# Async runtime
+tokio = { version = "1.50", features = ["full"] }
+
+# RSS/Atom feed parsing
+feed-rs = "2.3"
+
+# Serialization and configuration
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "1.1.2"
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+futures = "0.3"
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Utilities
+async-trait = "0.1"
+url = "2.5"
+uuid = { version = "1.23", features = ["v4"] }
+
+[dev-dependencies]
+tokio = { version = "1.50", features = ["full", "test-util"] }
+wiremock = "0.6"
+serial_test = "3.0"
+tempfile = "3.27"
+
+[[bin]]
+name = "news-mcp"
+path = "src/main.rs"
+
+[[test]]
+name = "unit"
+path = "tests/unit/mod.rs"
+
+[[test]]
+name = "e2e"
+path = "tests/e2e/mod.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
