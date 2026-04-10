@@ -4,7 +4,7 @@
 
 use crate::cache::NewsCache;
 use crate::config::PollerConfig;
-use crate::service::NewsService;
+use crate::service::{HnService, NewsService};
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 use tracing::{error, info, warn};
@@ -13,6 +13,8 @@ use tracing::{error, info, warn};
 pub struct NewsPoller {
     /// News service for fetching feeds
     service: Arc<NewsService>,
+    /// Hacker News service
+    hn_service: Arc<HnService>,
     /// Cache to store fetched articles
     cache: Arc<NewsCache>,
     /// Polling configuration
@@ -28,6 +30,7 @@ impl NewsPoller {
     pub fn new(service: Arc<NewsService>, cache: Arc<NewsCache>, config: PollerConfig) -> Self {
         Self {
             service,
+            hn_service: Arc::new(HnService::new()),
             cache,
             config,
             running: std::sync::atomic::AtomicBool::new(false),
@@ -95,6 +98,16 @@ impl NewsPoller {
             } else {
                 warn!("No articles fetched for category {}", category);
             }
+        }
+
+        // Fetch Hacker News top stories
+        let hn_articles = self.hn_service.fetch_top_stories(30).await?;
+        if !hn_articles.is_empty() {
+            let hn_count = hn_articles.len();
+            total_articles += hn_count;
+            self.cache.set_category_news(crate::cache::NewsCategory::HackerNews, hn_articles)?;
+            successful_categories += 1;
+            info!("Updated {} articles for Hacker News category", hn_count);
         }
 
         let elapsed = start_time.elapsed();

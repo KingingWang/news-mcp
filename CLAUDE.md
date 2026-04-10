@@ -96,12 +96,33 @@ max_articles_per_category = 100
 
 ### RSS Feed Sources
 
-Currently configured feeds (see `src/service/news_service.rs`):
-- Technology: TechCrunch, Ars Technica, The Verge
-- Science: ScienceDaily
-- Other categories: BBC feeds (often rate-limited)
+Currently configured feeds (see `src/utils/mod.rs`):
 
-Note: BBC feeds frequently fail with "Request failed after 3 retries" - this is expected behavior due to rate limiting.
+**Technology**: TechCrunch, Ars Technica, The Verge
+**Science**: ScienceDaily
+
+**China News Categories** (中国新闻网):
+- 即时新闻 (Instant)
+- 要闻导读 (Headlines)
+- 时政新闻 (Politics)
+- 东西问 (EastWest)
+- 社会新闻 (Society)
+- 财经新闻 (Finance)
+- 生活 (Life)
+- 健康 (Wellness)
+- 大湾区 (GreaterBayArea)
+- 华人 (Chinese)
+- 视频 (Video)
+- 图片 (Photo)
+- 创意 (Creative)
+- 直播 (Live)
+- 教育 (Education)
+- 法治 (Law)
+- 同心 (UnitedFront)
+- 铸牢中华民族共同体意识 (EthnicUnity)
+- 一带一路 (BeltAndRoad)
+- 理论 (Theory)
+- 中国—东盟商贸资讯平台 (Asean)
 
 ### MCP Protocol Notes
 

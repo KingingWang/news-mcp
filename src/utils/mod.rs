@@ -14,15 +14,36 @@ pub fn get_feed_urls(category: &NewsCategory) -> Vec<&'static str> {
             "https://feeds.arstechnica.com/arstechnica/index",
             "https://www.theverge.com/rss/index.xml",
         ],
-        NewsCategory::Business => vec!["https://feeds.bbci.co.uk/news/business/rss.xml"],
+        NewsCategory::Business => vec![],
         NewsCategory::Science => vec!["https://www.sciencedaily.com/rss/all.xml"],
-        NewsCategory::Health => vec!["https://feeds.bbci.co.uk/news/health/rss.xml"],
-        NewsCategory::Sports => vec!["https://feeds.bbci.co.uk/sport/rss.xml"],
-        NewsCategory::Entertainment => {
-            vec!["https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml"]
-        }
-        NewsCategory::General => vec!["https://feeds.bbci.co.uk/news/rss.xml"],
-        NewsCategory::World => vec!["https://feeds.bbci.co.uk/news/world/rss.xml"],
+        NewsCategory::Health => vec![],
+        NewsCategory::Sports => vec![],
+        NewsCategory::Entertainment => vec![],
+        NewsCategory::General => vec![],
+        NewsCategory::World => vec![],
+        NewsCategory::HackerNews => vec![], // Hacker News uses API, not RSS
+        // China News categories
+        NewsCategory::Instant => vec!["https://www.chinanews.com.cn/rss/scroll-news.xml"],
+        NewsCategory::Headlines => vec!["https://www.chinanews.com.cn/rss/importnews.xml"],
+        NewsCategory::Politics => vec!["https://www.chinanews.com.cn/rss/china.xml"],
+        NewsCategory::EastWest => vec!["https://www.chinanews.com.cn/rss/dxw.xml"],
+        NewsCategory::Society => vec!["https://www.chinanews.com.cn/rss/society.xml"],
+        NewsCategory::Finance => vec!["https://www.chinanews.com.cn/rss/finance.xml"],
+        NewsCategory::Life => vec!["https://www.chinanews.com.cn/rss/life.xml"],
+        NewsCategory::Wellness => vec!["https://www.chinanews.com.cn/rss/jk.xml"],
+        NewsCategory::GreaterBayArea => vec!["https://www.chinanews.com.cn/rss/dwq.xml"],
+        NewsCategory::Chinese => vec!["https://www.chinanews.com.cn/rss/chinese.xml"],
+        NewsCategory::Video => vec!["https://www.chinanews.com.cn/rss/sp.xml"],
+        NewsCategory::Photo => vec!["https://www.chinanews.com.cn/rss/photo.xml"],
+        NewsCategory::Creative => vec!["https://www.chinanews.com.cn/rss/chuangyi.xml"],
+        NewsCategory::Live => vec!["https://www.chinanews.com.cn/rss/zhibo.xml"],
+        NewsCategory::Education => vec!["https://www.chinanews.com.cn/rss/edu.xml"],
+        NewsCategory::Law => vec!["https://www.chinanews.com.cn/rss/fz.xml"],
+        NewsCategory::UnitedFront => vec!["https://www.chinanews.com.cn/rss/tx.xml"],
+        NewsCategory::EthnicUnity => vec!["https://www.chinanews.com.cn/rss/mz.xml"],
+        NewsCategory::BeltAndRoad => vec!["https://www.chinanews.com.cn/rss/ydyl.xml"],
+        NewsCategory::Theory => vec!["https://www.chinanews.com.cn/rss/theory.xml"],
+        NewsCategory::Asean => vec!["https://www.chinanews.com.cn/rss/aseaninfo.xml"],
     }
 }
 

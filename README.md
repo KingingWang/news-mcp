@@ -184,16 +184,50 @@ curl http://localhost:8080/health
 
 ## 新闻源
 
+### 国外新闻
+
 | 类别 | 来源 |
 |------|------|
 | Technology | TechCrunch, Ars Technica, The Verge |
-| Business | BBC Business |
 | Science | ScienceDaily |
-| Health | BBC Health |
-| Sports | BBC Sport |
-| Entertainment | BBC Entertainment |
-| General | BBC News |
-| World | BBC World |
+
+### 中国新闻网 (chinanews.com.cn)
+
+| 类别 | 名称 | RSS |
+|------|------|-----|
+| instant | 即时新闻 | scroll-news.xml |
+| headlines | 要闻导读 | importnews.xml |
+| politics | 时政新闻 | china.xml |
+| eastwest | 东西问 | dxw.xml |
+| world | 国际新闻 | world.xml |
+| society | 社会新闻 | society.xml |
+| finance | 财经新闻 | finance.xml |
+| life | 生活 | life.xml |
+| wellness | 健康 | jk.xml |
+| greaterbayarea | 大湾区 | dwq.xml |
+| chinese | 华人 | chinese.xml |
+| culture | 文娱新闻 | culture.xml |
+| sports | 体育新闻 | sports.xml |
+| video | 视频 | sp.xml |
+| photo | 图片 | photo.xml |
+| creative | 创意 | chuangyi.xml |
+| live | 直播 | zhibo.xml |
+| education | 教育 | edu.xml |
+| law | 法治 | fz.xml |
+| unitedfront | 同心 | tx.xml |
+| ethnicunity | 铸牢中华民族共同体意识 | mz.xml |
+| beltandroad | 一带一路 | ydyl.xml |
+| theory | 理论 | theory.xml |
+| asean | 中国—东盟商贸资讯平台 | aseaninfo.xml |
+
+**使用方式：**
+```json
+{
+  "category": "instant",  // 或 "即时新闻"
+  "limit": 5,
+  "format": "markdown"
+}
+```
 
 ## 项目结构
 
