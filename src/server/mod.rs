@@ -10,6 +10,7 @@ pub use transport::*;
 
 use crate::cache::NewsCache;
 use crate::config::AppConfig;
+use crate::service::{HnService, NewsService, NewsSource};
 use crate::tools::ToolRegistry;
 use std::sync::Arc;
 
@@ -38,7 +39,11 @@ impl NewsMcpServer {
 
     /// Create server with default tools registered
     pub fn with_default_tools(config: AppConfig, cache: Arc<NewsCache>) -> Self {
-        let tool_registry = Arc::new(crate::tools::create_default_registry(cache.clone()));
+        let sources: Vec<Arc<dyn NewsSource>> = vec![
+            Arc::new(NewsService::with_config(Arc::new(config.clone()))),
+            Arc::new(HnService::new()),
+        ];
+        let tool_registry = Arc::new(crate::tools::create_default_registry(cache.clone(), sources));
 
         Self {
             config,

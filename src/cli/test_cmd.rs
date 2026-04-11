@@ -96,7 +96,7 @@ fn test_tools() -> Result<()> {
     println!("Testing tool operations...");
 
     let cache = Arc::new(NewsCache::new(100));
-    let registry = create_default_registry(cache);
+    let registry = create_default_registry(cache, vec![]);
 
     // Test tool registry
     let tools = registry.get_tools();

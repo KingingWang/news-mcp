@@ -3,15 +3,22 @@
 //! Handles fetching and parsing RSS feeds.
 
 use crate::cache::{NewsArticle, NewsCategory};
+use crate::config::AppConfig;
 use crate::error::{Error, Result};
+use crate::service::NewsSource;
 use crate::utils::get_feed_urls;
+use async_trait::async_trait;
 use feed_rs::parser;
+use std::collections::HashMap;
+use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 
 /// News service for fetching RSS feeds
 pub struct NewsService {
     /// HTTP client with retry middleware
     client: reqwest_middleware::ClientWithMiddleware,
+    /// Optional config for feed URL lookups
+    config: Option<Arc<AppConfig>>,
 }
 
 impl NewsService {
@@ -19,7 +26,28 @@ impl NewsService {
     pub fn new() -> Self {
         Self {
             client: crate::utils::build_http_client_with_retry(),
+            config: None,
         }
+    }
+
+    /// Create a news service with configuration for dynamic feed URLs
+    pub fn with_config(config: Arc<AppConfig>) -> Self {
+        Self {
+            client: crate::utils::build_http_client_with_retry(),
+            config: Some(config),
+        }
+    }
+
+    /// Get feed URLs for a category, using config if available
+    fn get_feed_urls_for_category(&self, category: &NewsCategory) -> Vec<String> {
+        if let Some(config) = &self.config {
+            let urls = config.get_feed_urls(&category.to_string());
+            if !urls.is_empty() {
+                return urls;
+            }
+        }
+        // Fallback to hardcoded defaults
+        get_feed_urls(category).into_iter().map(|s| s.to_string()).collect()
     }
 
     /// Fetch RSS feed from URL and parse articles
@@ -104,16 +132,29 @@ impl NewsService {
 
     /// Fetch all feeds for a category concurrently
     pub async fn fetch_category(&self, category: NewsCategory) -> Result<Vec<NewsArticle>> {
-        let urls = get_feed_urls(&category);
-        let mut all_articles = Vec::new();
+        let urls = self.get_feed_urls_for_category(&category);
 
-        for url in urls {
-            match self.fetch_rss_feed(url, category).await {
+        if urls.is_empty() {
+            debug!("No feed URLs configured for category {}", category);
+            return Ok(vec![]);
+        }
+
+        // Fetch all URLs concurrently
+        let futures: Vec<_> = urls
+            .iter()
+            .map(|url| self.fetch_rss_feed(url, category))
+            .collect();
+
+        let results = futures::future::join_all(futures).await;
+
+        let mut all_articles = Vec::new();
+        for (i, result) in results.into_iter().enumerate() {
+            match result {
                 Ok(articles) => {
                     all_articles.extend(articles);
                 }
                 Err(e) => {
-                    error!("Failed to fetch feed {}: {}", url, e);
+                    error!("Failed to fetch feed {}: {}", urls[i], e);
                 }
             }
         }
@@ -167,5 +208,16 @@ impl NewsService {
 impl Default for NewsService {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[async_trait]
+impl NewsSource for NewsService {
+    fn name(&self) -> &str {
+        "RSS Feeds"
+    }
+
+    async fn fetch(&self) -> Result<HashMap<NewsCategory, Vec<NewsArticle>>> {
+        self.fetch_all_categories().await
     }
 }

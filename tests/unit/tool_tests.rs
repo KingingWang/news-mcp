@@ -60,7 +60,7 @@ fn create_empty_cache() -> Arc<NewsCache> {
 #[test]
 fn test_tool_registry() {
     let cache = create_test_cache();
-    let registry = create_default_registry(cache);
+    let registry = create_default_registry(cache, vec![]);
 
     let tools = registry.get_tools();
     assert_eq!(tools.len(), 5);
@@ -77,7 +77,7 @@ fn test_tool_registry() {
 #[test]
 fn test_tool_registry_get() {
     let cache = create_test_cache();
-    let registry = create_default_registry(cache);
+    let registry = create_default_registry(cache, vec![]);
 
     let tool = registry.get("get_news");
     assert!(tool.is_some());
@@ -525,7 +525,7 @@ async fn test_health_check_empty_cache() {
 #[test]
 fn test_refresh_news_tool_definition() {
     let cache = create_test_cache();
-    let tool = RefreshNewsToolImpl::new(cache);
+    let tool = RefreshNewsToolImpl::new(cache, vec![]);
 
     let definition = tool.definition();
     assert_eq!(definition.name, "refresh_news");
@@ -534,7 +534,7 @@ fn test_refresh_news_tool_definition() {
 #[tokio::test]
 async fn test_refresh_news_tool_execution() {
     let cache = create_empty_cache();
-    let tool = RefreshNewsToolImpl::new(cache);
+    let tool = RefreshNewsToolImpl::new(cache, vec![]);
 
     // Note: This test makes actual network requests
     // It may fail if network is unavailable
@@ -551,7 +551,7 @@ async fn test_refresh_news_tool_execution() {
 #[tokio::test]
 async fn test_refresh_news_invalid_category() {
     let cache = create_empty_cache();
-    let tool = RefreshNewsToolImpl::new(cache);
+    let tool = RefreshNewsToolImpl::new(cache, vec![]);
 
     let params = serde_json::json!({
         "category": "invalid_category"
@@ -564,7 +564,7 @@ async fn test_refresh_news_invalid_category() {
 #[tokio::test]
 async fn test_refresh_news_with_null_params() {
     let cache = create_empty_cache();
-    let tool = RefreshNewsToolImpl::new(cache);
+    let tool = RefreshNewsToolImpl::new(cache, vec![]);
 
     // Should handle null parameters gracefully
     let result = tool.execute(serde_json::Value::Null).await;

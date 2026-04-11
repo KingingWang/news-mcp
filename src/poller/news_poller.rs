@@ -1,20 +1,18 @@
 //! News poller implementation
 //!
-//! Background task that periodically fetches news and updates cache.
+//! Background task that periodically fetches news from pluggable sources and updates cache.
 
 use crate::cache::NewsCache;
 use crate::config::PollerConfig;
-use crate::service::{HnService, NewsService};
+use crate::service::NewsSource;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 use tracing::{error, info, warn};
 
 /// News poller for background fetching
 pub struct NewsPoller {
-    /// News service for fetching feeds
-    service: Arc<NewsService>,
-    /// Hacker News service
-    hn_service: Arc<HnService>,
+    /// Pluggable news sources
+    sources: Vec<Arc<dyn NewsSource>>,
     /// Cache to store fetched articles
     cache: Arc<NewsCache>,
     /// Polling configuration
@@ -26,11 +24,10 @@ pub struct NewsPoller {
 }
 
 impl NewsPoller {
-    /// Create a new poller
-    pub fn new(service: Arc<NewsService>, cache: Arc<NewsCache>, config: PollerConfig) -> Self {
+    /// Create a new poller with the given sources
+    pub fn new(sources: Vec<Arc<dyn NewsSource>>, cache: Arc<NewsCache>, config: PollerConfig) -> Self {
         Self {
-            service,
-            hn_service: Arc::new(HnService::new()),
+            sources,
             cache,
             config,
             running: std::sync::atomic::AtomicBool::new(false),
@@ -77,37 +74,43 @@ impl NewsPoller {
         }
     }
 
-    /// Perform a single poll cycle
+    /// Perform a single poll cycle across all registered sources
     pub async fn poll_once(&self) -> crate::error::Result<()> {
-        info!("Starting poll cycle");
+        info!("Starting poll cycle across {} sources", self.sources.len());
         let start_time = std::time::Instant::now();
-
-        let results = self.service.fetch_all_categories().await?;
 
         let mut total_articles = 0;
         let mut successful_categories = 0;
 
-        for (category, articles) in results {
-            let count = articles.len();
-            total_articles += count;
+        for source in &self.sources {
+            match source.fetch().await {
+                Ok(results) => {
+                    for (category, articles) in results {
+                        let count = articles.len();
+                        total_articles += count;
 
-            if count > 0 {
-                self.cache.set_category_news(category, articles)?;
-                successful_categories += 1;
-                info!("Updated {} articles for category {}", count, category);
-            } else {
-                warn!("No articles fetched for category {}", category);
+                        if count > 0 {
+                            self.cache.set_category_news(category, articles)?;
+                            successful_categories += 1;
+                            info!(
+                                "Updated {} articles for category {} from {}",
+                                count,
+                                category,
+                                source.name()
+                            );
+                        } else {
+                            warn!(
+                                "No articles fetched for category {} from {}",
+                                category,
+                                source.name()
+                            );
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Source '{}' fetch failed: {}", source.name(), e);
+                }
             }
-        }
-
-        // Fetch Hacker News top stories
-        let hn_articles = self.hn_service.fetch_top_stories(30).await?;
-        if !hn_articles.is_empty() {
-            let hn_count = hn_articles.len();
-            total_articles += hn_count;
-            self.cache.set_category_news(crate::cache::NewsCategory::HackerNews, hn_articles)?;
-            successful_categories += 1;
-            info!("Updated {} articles for Hacker News category", hn_count);
         }
 
         let elapsed = start_time.elapsed();

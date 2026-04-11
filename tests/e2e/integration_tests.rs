@@ -67,7 +67,7 @@ async fn test_tools_workflow() {
         .unwrap();
 
     // Use tools
-    let registry = create_default_registry(cache);
+    let registry = create_default_registry(cache, vec![]);
     let result = registry
         .get("get_news")
         .unwrap()

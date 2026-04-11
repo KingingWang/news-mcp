@@ -4,7 +4,7 @@
 //! Returns current cached data immediately, updates cache in background.
 
 use crate::cache::{NewsCache, NewsCategory};
-use crate::service::NewsService;
+use crate::service::NewsSource;
 use crate::tools::Tool;
 use async_trait::async_trait;
 use rust_mcp_sdk::macros;
@@ -36,12 +36,13 @@ pub struct RefreshNewsTool {
 /// Refresh news tool implementation
 pub struct RefreshNewsToolImpl {
     cache: Arc<NewsCache>,
+    sources: Vec<Arc<dyn NewsSource>>,
 }
 
 impl RefreshNewsToolImpl {
     /// Create a new refresh_news tool
-    pub fn new(cache: Arc<NewsCache>) -> Self {
-        Self { cache }
+    pub fn new(cache: Arc<NewsCache>, sources: Vec<Arc<dyn NewsSource>>) -> Self {
+        Self { cache, sources }
     }
 }
 
@@ -97,28 +98,31 @@ impl Tool for RefreshNewsToolImpl {
         output.push_str("Status: Refresh triggered in background\n");
         output.push_str("Note: New data will be available on next request\n");
 
-        // Spawn background task to refresh cache
+        // Spawn background task to refresh cache using all registered sources
         let cache = self.cache.clone();
+        let sources = self.sources.clone();
         let category_param = params.category.clone();
 
         tokio::spawn(async move {
-            let service = NewsService::new();
-
             if let Some(category_str) = category_param {
                 match category_str.parse::<NewsCategory>() {
                     Ok(category) => {
                         info!("Background refresh started for category: {}", category.display_name());
-                        match service.fetch_category(category).await {
-                            Ok(articles) => {
-                                let count = articles.len();
-                                if let Err(e) = cache.set_category_news(category, articles) {
-                                    tracing::error!("Failed to update cache: {}", e);
-                                } else {
-                                    info!("Background refresh completed: {} articles for {}", count, category.display_name());
+                        for source in &sources {
+                            match source.fetch().await {
+                                Ok(results) => {
+                                    if let Some(articles) = results.get(&category) {
+                                        let count = articles.len();
+                                        if let Err(e) = cache.set_category_news(category, articles.clone()) {
+                                            tracing::error!("Failed to update cache: {}", e);
+                                        } else {
+                                            info!("Background refresh from {}: {} articles for {}", source.name(), count, category.display_name());
+                                        }
+                                    }
                                 }
-                            }
-                            Err(e) => {
-                                tracing::error!("Background refresh failed: {}", e);
+                                Err(e) => {
+                                    tracing::error!("Source '{}' refresh failed: {}", source.name(), e);
+                                }
                             }
                         }
                     }
@@ -127,21 +131,22 @@ impl Tool for RefreshNewsToolImpl {
                     }
                 }
             } else {
-                info!("Background refresh started for all categories");
-                match service.fetch_all_categories().await {
-                    Ok(results) => {
-                        let mut total = 0;
-                        for (category, articles) in results {
-                            let count = articles.len();
-                            total += count;
-                            if let Err(e) = cache.set_category_news(category, articles) {
-                                tracing::error!("Failed to update cache for {}: {}", category, e);
+                info!("Background refresh started for all categories from {} sources", sources.len());
+                for source in &sources {
+                    match source.fetch().await {
+                        Ok(results) => {
+                            for (category, articles) in results {
+                                let count = articles.len();
+                                if let Err(e) = cache.set_category_news(category, articles) {
+                                    tracing::error!("Failed to update cache for {}: {}", category, e);
+                                } else {
+                                    info!("Background refresh from {}: {} articles for {}", source.name(), count, category);
+                                }
                             }
                         }
-                        info!("Background refresh completed: {} total articles", total);
-                    }
-                    Err(e) => {
-                        tracing::error!("Background refresh failed: {}", e);
+                        Err(e) => {
+                            tracing::error!("Source '{}' refresh failed: {}", source.name(), e);
+                        }
                     }
                 }
             }

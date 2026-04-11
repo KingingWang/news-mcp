@@ -7,7 +7,7 @@ use crate::config::{AppConfig, TransportMode};
 use crate::error::{Error, Result};
 use crate::poller::NewsPoller;
 use crate::server::{NewsMcpHandler, NewsMcpServer};
-use crate::service::NewsService;
+use crate::service::{HnService, NewsService, NewsSource};
 use rust_mcp_sdk::{
     error::McpSdkError,
     event_store,
@@ -187,8 +187,11 @@ pub async fn run_hybrid_server(config: &AppConfig, server: &NewsMcpServer) -> Re
 
 /// Start the poller in background
 pub fn start_poller(config: &AppConfig, cache: Arc<NewsCache>) -> Arc<NewsPoller> {
-    let service = Arc::new(NewsService::new());
-    let poller = Arc::new(NewsPoller::new(service, cache, config.poller.clone()));
+    let sources: Vec<Arc<dyn NewsSource>> = vec![
+        Arc::new(NewsService::with_config(Arc::new(config.clone()))),
+        Arc::new(HnService::new()),
+    ];
+    let poller = Arc::new(NewsPoller::new(sources, cache, config.poller.clone()));
 
     // Spawn poller task
     tokio::spawn({

@@ -6,7 +6,7 @@ use crate::cache::NewsCategory;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 
-/// RSS feed URLs for each category
+/// Get fallback RSS feed URLs for a category when no config is available
 pub fn get_feed_urls(category: &NewsCategory) -> Vec<&'static str> {
     match category {
         NewsCategory::Technology => vec![
@@ -14,14 +14,7 @@ pub fn get_feed_urls(category: &NewsCategory) -> Vec<&'static str> {
             "https://feeds.arstechnica.com/arstechnica/index",
             "https://www.theverge.com/rss/index.xml",
         ],
-        NewsCategory::Business => vec![],
         NewsCategory::Science => vec!["https://www.sciencedaily.com/rss/all.xml"],
-        NewsCategory::Health => vec![],
-        NewsCategory::Sports => vec![],
-        NewsCategory::Entertainment => vec![],
-        NewsCategory::General => vec![],
-        NewsCategory::World => vec![],
-        NewsCategory::HackerNews => vec![], // Hacker News uses API, not RSS
         // China News categories
         NewsCategory::Instant => vec!["https://www.chinanews.com.cn/rss/scroll-news.xml"],
         NewsCategory::Headlines => vec!["https://www.chinanews.com.cn/rss/importnews.xml"],
@@ -44,6 +37,7 @@ pub fn get_feed_urls(category: &NewsCategory) -> Vec<&'static str> {
         NewsCategory::BeltAndRoad => vec!["https://www.chinanews.com.cn/rss/ydyl.xml"],
         NewsCategory::Theory => vec!["https://www.chinanews.com.cn/rss/theory.xml"],
         NewsCategory::Asean => vec!["https://www.chinanews.com.cn/rss/aseaninfo.xml"],
+        _ => vec![],
     }
 }
 

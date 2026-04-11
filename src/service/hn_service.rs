@@ -4,9 +4,12 @@
 
 use crate::cache::{NewsArticle, NewsCategory};
 use crate::error::{Error, Result};
+use crate::service::NewsSource;
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use newswrap::client::HackerNewsClient;
 use newswrap::items::stories::HackerNewsStory;
+use std::collections::HashMap;
 use time::OffsetDateTime;
 use tracing::{debug, info, warn};
 
@@ -186,6 +189,22 @@ impl HnService {
 
         info!("Fetched {} Hacker News articles", articles.len());
         Ok(articles)
+    }
+}
+
+#[async_trait]
+impl NewsSource for HnService {
+    fn name(&self) -> &str {
+        "Hacker News"
+    }
+
+    async fn fetch(&self) -> Result<HashMap<NewsCategory, Vec<NewsArticle>>> {
+        let articles = self.fetch_top_stories(30).await?;
+        let mut map = HashMap::new();
+        if !articles.is_empty() {
+            map.insert(NewsCategory::HackerNews, articles);
+        }
+        Ok(map)
     }
 }
 

@@ -17,11 +17,14 @@ pub async fn serve_command(
     info!("Starting news-mcp server");
 
     // Load or create configuration
-    let config = if let Some(path) = config_path {
+    let mut config = if let Some(path) = config_path {
         AppConfig::from_path(path)?
     } else {
         create_config_from_cmd(cmd)
     };
+
+    // Apply environment variable overrides
+    config.apply_env_overrides();
 
     // Create cache
     let cache = create_shared_cache(config.cache.max_articles_per_category);
@@ -77,5 +80,6 @@ fn create_config_from_cmd(cmd: &ServeCommand) -> AppConfig {
             level: "info".to_string(),
             enable_console: true,
         },
+        feeds: crate::config::AppConfig::default().feeds,
     }
 }
