@@ -1,11 +1,13 @@
 //! Tool unit tests
 
 use news_mcp::cache::{NewsArticle, NewsCache, NewsCategory};
+use news_mcp::config::FeedSourceConfig;
 use news_mcp::tools::{
     create_default_registry, GetCategoriesToolImpl, GetNewsToolImpl, HealthCheckToolImpl,
     RefreshNewsToolImpl, SearchNewsToolImpl, Tool,
 };
 use rust_mcp_sdk::schema::ContentBlock;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 fn get_text_content(result: &rust_mcp_sdk::schema::CallToolResult) -> &str {
@@ -53,6 +55,10 @@ fn create_empty_cache() -> Arc<NewsCache> {
     Arc::new(NewsCache::new(100))
 }
 
+fn create_test_feeds() -> HashMap<String, FeedSourceConfig> {
+    HashMap::new()
+}
+
 // ============================================================================
 // Tool Registry Tests
 // ============================================================================
@@ -60,7 +66,8 @@ fn create_empty_cache() -> Arc<NewsCache> {
 #[test]
 fn test_tool_registry() {
     let cache = create_test_cache();
-    let registry = create_default_registry(cache, vec![]);
+    let feeds = create_test_feeds();
+    let registry = create_default_registry(cache, vec![], feeds);
 
     let tools = registry.get_tools();
     assert_eq!(tools.len(), 5);
@@ -77,7 +84,8 @@ fn test_tool_registry() {
 #[test]
 fn test_tool_registry_get() {
     let cache = create_test_cache();
-    let registry = create_default_registry(cache, vec![]);
+    let feeds = create_test_feeds();
+    let registry = create_default_registry(cache, vec![], feeds);
 
     let tool = registry.get("get_news");
     assert!(tool.is_some());
@@ -93,7 +101,8 @@ fn test_tool_registry_get() {
 #[test]
 fn test_get_news_tool_definition() {
     let cache = create_test_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     let definition = tool.definition();
     assert_eq!(definition.name, "get_news");
@@ -106,7 +115,8 @@ fn test_get_news_tool_definition() {
 #[tokio::test]
 async fn test_get_news_tool_execution() {
     let cache = create_test_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     let result = tool.execute(serde_json::json!({})).await.unwrap();
     assert!(get_text_content(&result).contains("Technology"));
@@ -115,7 +125,8 @@ async fn test_get_news_tool_execution() {
 #[tokio::test]
 async fn test_get_news_tool_with_params() {
     let cache = create_test_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     let params = serde_json::json!({
         "category": "business",
@@ -130,7 +141,8 @@ async fn test_get_news_tool_with_params() {
 #[tokio::test]
 async fn test_get_news_all_categories() {
     let cache = create_test_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     // Test each category
     for category in &[
@@ -156,7 +168,8 @@ async fn test_get_news_all_categories() {
 #[tokio::test]
 async fn test_get_news_invalid_category() {
     let cache = create_test_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     let params = serde_json::json!({
         "category": "invalid_category"
@@ -169,7 +182,8 @@ async fn test_get_news_invalid_category() {
 #[tokio::test]
 async fn test_get_news_limit_boundaries() {
     let cache = create_test_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     // Test minimum limit
     let params = serde_json::json!({
@@ -197,7 +211,8 @@ async fn test_get_news_limit_boundaries() {
 #[tokio::test]
 async fn test_get_news_formats() {
     let cache = create_test_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     // Markdown format
     let params = serde_json::json!({
@@ -227,7 +242,8 @@ async fn test_get_news_formats() {
 #[tokio::test]
 async fn test_get_news_invalid_format() {
     let cache = create_test_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     let params = serde_json::json!({
         "format": "invalid_format"
@@ -240,7 +256,8 @@ async fn test_get_news_invalid_format() {
 #[tokio::test]
 async fn test_get_news_empty_cache() {
     let cache = create_empty_cache();
-    let tool = GetNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = GetNewsToolImpl::new(cache, feeds);
 
     let result = tool.execute(serde_json::json!({})).await.unwrap();
     let text = get_text_content(&result);
@@ -254,7 +271,8 @@ async fn test_get_news_empty_cache() {
 #[test]
 fn test_search_news_tool_definition() {
     let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = SearchNewsToolImpl::new(cache, feeds);
 
     let definition = tool.definition();
     assert_eq!(definition.name, "search_news");
@@ -263,7 +281,8 @@ fn test_search_news_tool_definition() {
 #[tokio::test]
 async fn test_search_news_tool() {
     let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = SearchNewsToolImpl::new(cache, feeds);
 
     let params = serde_json::json!({
         "query": "Technology"
@@ -276,7 +295,8 @@ async fn test_search_news_tool() {
 #[tokio::test]
 async fn test_search_news_tool_missing_query() {
     let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = SearchNewsToolImpl::new(cache, feeds);
 
     let result = tool.execute(serde_json::json!({})).await;
     assert!(result.is_err());
@@ -285,7 +305,8 @@ async fn test_search_news_tool_missing_query() {
 #[tokio::test]
 async fn test_search_news_case_insensitive() {
     let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = SearchNewsToolImpl::new(cache, feeds);
 
     // Lowercase search
     let params = serde_json::json!({
@@ -305,7 +326,8 @@ async fn test_search_news_case_insensitive() {
 #[tokio::test]
 async fn test_search_news_with_category_filter() {
     let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = SearchNewsToolImpl::new(cache, feeds);
 
     let params = serde_json::json!({
         "query": "News",
@@ -318,7 +340,8 @@ async fn test_search_news_with_category_filter() {
 #[tokio::test]
 async fn test_search_news_no_results() {
     let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache);
+    let feeds = create_test_feeds();
+    let tool = SearchNewsToolImpl::new(cache, feeds);
 
     let params = serde_json::json!({
         "query": "nonexistent_keyword_xyz123"
@@ -347,7 +370,7 @@ async fn test_search_news_limit() {
             .unwrap();
     }
 
-    let tool = SearchNewsToolImpl::new(cache);
+    let tool = SearchNewsToolImpl::new(cache, create_test_feeds());
 
     let params = serde_json::json!({
         "query": "Technology",
@@ -362,7 +385,7 @@ async fn test_search_news_limit() {
 #[tokio::test]
 async fn test_search_news_invalid_category() {
     let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache);
+    let tool = SearchNewsToolImpl::new(cache, create_test_feeds());
 
     let params = serde_json::json!({
         "query": "test",
@@ -375,7 +398,7 @@ async fn test_search_news_invalid_category() {
 #[tokio::test]
 async fn test_search_news_formats() {
     let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache);
+    let tool = SearchNewsToolImpl::new(cache, create_test_feeds());
 
     // JSON format
     let params = serde_json::json!({
@@ -589,7 +612,7 @@ async fn test_multiple_tools_workflow() {
     assert!(get_text_content(&result).contains("Technology"));
 
     // Get news
-    let get_news_tool = GetNewsToolImpl::new(cache.clone());
+    let get_news_tool = GetNewsToolImpl::new(cache.clone(), create_test_feeds());
     let result = get_news_tool
         .execute(serde_json::json!({"category": "technology"}))
         .await
@@ -597,7 +620,7 @@ async fn test_multiple_tools_workflow() {
     assert!(get_text_content(&result).contains("Technology"));
 
     // Search news
-    let search_tool = SearchNewsToolImpl::new(cache.clone());
+    let search_tool = SearchNewsToolImpl::new(cache.clone(), create_test_feeds());
     let result = search_tool
         .execute(serde_json::json!({"query": "Technology"}))
         .await

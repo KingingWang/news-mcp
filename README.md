@@ -10,7 +10,7 @@
 - **后台新闻轮询** - 定时从 RSS 源获取新闻并缓存
 - **多种传输模式** - 支持 HTTP、SSE、stdio 和混合模式
 - **MCP 工具** - 提供 `get_news`, `search_news`, `health_check` 等工具
-- **多类别支持** - Technology, Business, Science, Health, Sports, Entertainment, General, World
+- **多类别支持** - 类别根据配置文件动态生成，默认包含 Technology、Science、HackerNews 及中国新闻网 24 个分类
 - **内存缓存** - 高性能文章缓存，支持搜索功能
 - **重试机制** - RSS 源获取失败自动重试
 
@@ -74,10 +74,10 @@ enable_console = true
 
 ### get_news
 
-获取指定类别的新闻。
+获取指定类别的新闻。类别列表根据配置文件动态生成。
 
 **参数：**
-- `category` - 新闻类别 (technology, business, science, health, sports, entertainment, general, world)
+- `category` - 新闻类别（根据配置动态生成，默认包含：technology, science, hackernews, instant, headlines, politics 等）
 - `limit` - 返回文章数量（默认 10，最大 50）
 - `format` - 输出格式 (markdown, json, text)
 
@@ -199,15 +199,12 @@ curl http://localhost:8080/health
 | headlines | 要闻导读 | importnews.xml |
 | politics | 时政新闻 | china.xml |
 | eastwest | 东西问 | dxw.xml |
-| world | 国际新闻 | world.xml |
 | society | 社会新闻 | society.xml |
 | finance | 财经新闻 | finance.xml |
 | life | 生活 | life.xml |
 | wellness | 健康 | jk.xml |
 | greaterbayarea | 大湾区 | dwq.xml |
 | chinese | 华人 | chinese.xml |
-| culture | 文娱新闻 | culture.xml |
-| sports | 体育新闻 | sports.xml |
 | video | 视频 | sp.xml |
 | photo | 图片 | photo.xml |
 | creative | 创意 | chuangyi.xml |

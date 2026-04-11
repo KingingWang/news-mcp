@@ -1,10 +1,11 @@
 //! Integration tests
 
 use news_mcp::cache::{NewsArticle, NewsCache, NewsCategory};
-use news_mcp::config::AppConfig;
+use news_mcp::config::{AppConfig, FeedSourceConfig};
 use news_mcp::service::NewsService;
 use news_mcp::tools::create_default_registry;
 use rust_mcp_sdk::schema::ContentBlock;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 fn get_text_content(result: &rust_mcp_sdk::schema::CallToolResult) -> &str {
@@ -67,7 +68,8 @@ async fn test_tools_workflow() {
         .unwrap();
 
     // Use tools
-    let registry = create_default_registry(cache, vec![]);
+    let feeds: HashMap<String, FeedSourceConfig> = HashMap::new();
+    let registry = create_default_registry(cache, vec![], feeds);
     let result = registry
         .get("get_news")
         .unwrap()

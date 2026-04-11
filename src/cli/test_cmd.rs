@@ -4,8 +4,10 @@
 
 use crate::cache::{NewsCache, NewsCategory};
 use crate::cli::TestCommand;
+use crate::config::FeedSourceConfig;
 use crate::error::Result;
 use crate::tools::create_default_registry;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::info;
 
@@ -96,7 +98,8 @@ fn test_tools() -> Result<()> {
     println!("Testing tool operations...");
 
     let cache = Arc::new(NewsCache::new(100));
-    let registry = create_default_registry(cache, vec![]);
+    let feeds: HashMap<String, FeedSourceConfig> = HashMap::new();
+    let registry = create_default_registry(cache, vec![], feeds);
 
     // Test tool registry
     let tools = registry.get_tools();

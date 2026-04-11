@@ -43,7 +43,11 @@ impl NewsMcpServer {
             Arc::new(NewsService::with_config(Arc::new(config.clone()))),
             Arc::new(HnService::new()),
         ];
-        let tool_registry = Arc::new(crate::tools::create_default_registry(cache.clone(), sources));
+        let tool_registry = Arc::new(crate::tools::create_default_registry(
+            cache.clone(),
+            sources,
+            config.feeds.clone(),
+        ));
 
         Self {
             config,

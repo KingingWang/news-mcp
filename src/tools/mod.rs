@@ -15,6 +15,7 @@ pub use refresh_news::*;
 pub use search_news::*;
 
 use crate::cache::NewsCache;
+use crate::config::FeedSourceConfig;
 use crate::service::NewsSource;
 use async_trait::async_trait;
 use rust_mcp_sdk::schema::{CallToolError, CallToolResult, Tool as McpTool};
@@ -85,10 +86,14 @@ impl Default for ToolRegistry {
 }
 
 /// Create default tool registry with all tools
-pub fn create_default_registry(cache: Arc<NewsCache>, sources: Vec<Arc<dyn NewsSource>>) -> ToolRegistry {
+pub fn create_default_registry(
+    cache: Arc<NewsCache>,
+    sources: Vec<Arc<dyn NewsSource>>,
+    feeds: HashMap<String, FeedSourceConfig>,
+) -> ToolRegistry {
     ToolRegistry::new()
-        .register(Box::new(GetNewsToolImpl::new(cache.clone())))
-        .register(Box::new(SearchNewsToolImpl::new(cache.clone())))
+        .register(Box::new(GetNewsToolImpl::new(cache.clone(), feeds.clone())))
+        .register(Box::new(SearchNewsToolImpl::new(cache.clone(), feeds)))
         .register(Box::new(GetCategoriesToolImpl::new(cache.clone())))
         .register(Box::new(HealthCheckToolImpl::new(cache.clone())))
         .register(Box::new(RefreshNewsToolImpl::new(cache, sources)))

@@ -9,37 +9,48 @@
 
 ## 2. 系统架构
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Client (Claude Desktop)               │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ MCP Protocol (stdio/HTTP/SSE)
-┌─────────────────────────▼───────────────────────────────────┐
-│                    NewsMcpServer                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │  Transport  │  │   Handler   │  │   Tool Registry     │  │
-│  │  (stdio/    │  │             │  │  - get_news         │  │
-│  │   http/sse) │  │             │  │  - search_news      │  │
-│  └─────────────┘  └─────────────┘  │  - health_check     │  │
-│                                    │  - get_categories   │  │
-│                                    │  - refresh_news     │  │
-│                                    └─────────────────────┘  │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│                    Core Components                           │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Cache     │  │   Poller    │  │   News Service      │  │
-│  │  (RwLock)   │  │ (background)│  │  (HTTP + retry)     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│                    RSS Feeds                                 │
-│  - TechCrunch, Ars Technica, The Verge                       │
-│  - ScienceDaily                                              │
-│  - 中国新闻网 (24个分类)                                      │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Client["客户端"]
+        CD["Claude Desktop"]
+    end
+    
+    subgraph Server["NewsMcpServer"]
+        Transport["Transport<br/>(stdio/http/sse)"]
+        Handler["Handler"]
+        ToolRegistry["Tool Registry"]
+        
+        subgraph Tools["MCP 工具"]
+            GN["get_news"]
+            SN["search_news"]
+            HC["health_check"]
+            GC["get_categories"]
+            RN["refresh_news"]
+        end
+    end
+    
+    subgraph Core["核心组件"]
+        Cache["Cache<br/>(RwLock)"]
+        Poller["Poller<br/>(background)"]
+        NewsService["News Service<br/>(HTTP + retry)"]
+    end
+    
+    subgraph Feeds["RSS 源"]
+        Tech["TechCrunch<br/>Ars Technica<br/>The Verge"]
+        Sci["ScienceDaily"]
+        HN["Hacker News"]
+        CN["中国新闻网<br/>(21个分类)"]
+    end
+    
+    CD -->|"MCP Protocol"| Transport
+    Transport --> Handler
+    Handler --> ToolRegistry
+    ToolRegistry --> Tools
+    
+    Tools --> Cache
+    Poller --> Cache
+    Poller --> NewsService
+    NewsService --> Feeds
 ```
 
 ## 3. 核心组件
@@ -74,10 +85,16 @@ pub struct NewsCache {
 - 并发获取所有分类
 
 **关键流程**:
-```
-启动 → 等待初始轮询完成 → 进入后台轮询循环
-         ↓
-   获取所有分类 → 并发请求 → 解析 → 更新缓存 → 等待下次轮询
+```mermaid
+flowchart LR
+    A[启动] --> B[等待初始轮询完成]
+    B --> C[进入后台轮询循环]
+    C --> D[获取所有分类]
+    D --> E[并发请求]
+    E --> F[解析 RSS]
+    F --> G[更新缓存]
+    G --> H[等待下次轮询]
+    H --> C
 ```
 
 ### 3.3 Service (`src/service/`)
@@ -117,21 +134,23 @@ pub struct NewsMcpHandler {
 
 | 工具 | 功能 | 参数 |
 |------|------|------|
-| get_news | 获取新闻列表 | category, limit, format |
-| search_news | 搜索新闻 | query, category, limit |
+| get_news | 获取新闻列表（类别动态生成） | category, limit, format |
+| search_news | 搜索新闻（类别动态生成） | query, category, limit |
 | get_categories | 获取分类列表 | - |
 | health_check | 健康检查 | check_type, verbose |
 | refresh_news | 手动刷新 | category |
 
 **支持格式**: markdown, json, text
 
+**类别特性**: 工具的类别参数根据配置文件动态生成，MCP 客户端会看到实际可用的类别列表。
+
 ## 4. 数据模型
 
 ### NewsCategory
 
-支持 30 个分类：
-- 英文分类: Technology, Business, Science, Health, Sports, Entertainment, General, World, HackerNews
-- 中文分类: 即时新闻, 要闻导读, 时政新闻, 东西问, 国际新闻, 社会新闻, 财经新闻, 生活, 健康, 大湾区, 华人, 文娱新闻, 体育新闻, 视频, 图片, 创意, 直播, 教育, 法治, 同心, 铸牢中华民族共同体意识, 一带一路, 理论, 中国—东盟商贸资讯平台
+支持 30+ 个分类（根据配置动态生成）：
+- **英文分类**: Technology (TechCrunch, Ars Technica, The Verge), Science (ScienceDaily), HackerNews
+- **中文分类**: 即时新闻, 要闻导读, 时政新闻, 东西问, 国际新闻, 社会新闻, 财经新闻, 生活, 健康, 大湾区, 华人, 文娱新闻, 体育新闻, 视频, 图片, 创意, 直播, 教育, 法治, 同心, 铸牢中华民族共同体意识, 一带一路, 理论, 中国—东盟商贸资讯平台
 
 ### NewsArticle
 
@@ -176,9 +195,9 @@ enable_console = true
 - **Technology**: TechCrunch, Ars Technica, The Verge
 - **Science**: ScienceDaily
 
-### 中国新闻网 (24个分类)
-- 即时新闻、要闻导读、时政新闻、东西问、国际新闻、社会新闻
-- 财经新闻、生活、健康、大湾区、华人、文娱新闻、体育新闻
+### 中国新闻网 (21个分类)
+- 即时新闻、要闻导读、时政新闻、东西问、社会新闻
+- 财经新闻、生活、健康、大湾区、华人
 - 视频、图片、创意、直播、教育、法治
 - 同心、铸牢中华民族共同体意识、一带一路、理论、中国—东盟商贸资讯平台
 
