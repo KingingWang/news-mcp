@@ -1,9 +1,67 @@
 # News MCP Server
 
-一个基于 Rust 的 MCP (Model Context Protocol) 服务器，用于获取新闻 RSS 源，支持后台轮询、内存缓存和多种传输模式。
-
 [![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg)](https://www.rust-lang.org)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/KingingWang/news-mcp/workflows/CI/badge.svg)](https://github.com/KingingWang/news-mcp/actions)
+
+**English** | [中文](#中文文档)
+
+A Rust-based MCP (Model Context Protocol) server for fetching news from RSS feeds, with background polling, in-memory caching, and multiple transport modes.
+
+## Features
+
+- **Background Polling** - Periodically fetches news from RSS sources and caches locally
+- **Multiple Transport Modes** - Supports HTTP, SSE, stdio, and hybrid modes
+- **MCP Tools** - Provides `get_news`, `search_news`, `health_check`, `get_categories`, `refresh_news`
+- **Multiple Categories** - Categories are dynamically generated from config, including Technology, Science, HackerNews, and 21 China News categories
+- **Pluggable Sources** - Extensible `NewsSource` trait for adding custom data sources
+- **In-memory Cache** - High-performance article cache with search functionality
+- **Retry Mechanism** - Automatic retry for failed RSS fetch requests
+
+## Quick Start
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/KingingWang/news-mcp
+cd news-mcp
+
+# Build
+cargo build --release
+
+# Run tests
+cargo test
+```
+
+### Run Server
+
+```bash
+# Run with default config
+./target/release/news-mcp serve
+
+# HTTP mode
+./target/release/news-mcp serve --mode http --port 8080
+
+# stdio mode (for Claude Desktop)
+./target/release/news-mcp serve --mode stdio
+
+# With background polling
+./target/release/news-mcp serve --mode http --poll
+```
+
+## Documentation
+
+- [Architecture](ARCHITECTURE.md) - System design and component overview
+- [Contributing](CONTRIBUTING.md) - Development guidelines
+- [Changelog](CHANGELOG.md) - Version history
+- [Examples](examples/) - Usage guides for Claude Desktop, HTTP API, custom feeds, Docker
+
+---
+
+## 中文文档
+
+一个基于 Rust 的 MCP (Model Context Protocol) 服务器，用于获取新闻 RSS 源，支持后台轮询、内存缓存和多种传输模式。
 
 ## 功能特性
 
