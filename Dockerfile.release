@@ -1,0 +1,59 @@
+# Dockerfile for release builds - uses pre-compiled binaries
+# This Dockerfile is optimized for CI/CD pipelines where binaries are pre-compiled
+# using cross-rs for cross-platform builds, avoiding slow QEMU emulation.
+#
+# Uses scratch (empty) base image since musl binary is fully statically linked.
+# CA certificates are copied from alpine for HTTPS support.
+#
+# Configuration:
+# - Mount custom config: docker run -v /path/to/config.toml:/etc/news-mcp/config.toml:ro ...
+# - Or use environment variables (see below)
+# - Config file is optional; if not mounted, server starts with defaults + env vars
+
+# Stage 1: Get CA certificates from alpine
+FROM alpine:latest AS certs
+RUN apk add --no-cache ca-certificates
+
+# Stage 2: Final minimal image
+FROM scratch
+
+# ARG must be declared after FROM in multi-stage builds
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+# Copy CA certificates for HTTPS requests to RSS feeds
+COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy pre-compiled binary based on target architecture
+# The binary is expected to be at ./binaries/news-mcp-${TARGETARCH}
+# TARGETARCH values: amd64, arm64 (set automatically by docker buildx)
+COPY binaries/news-mcp-${TARGETARCH} /app/news-mcp
+
+# Copy default configuration as fallback (optional, can be overridden by volume mount)
+COPY config.toml /etc/news-mcp/config.toml
+
+# Set working directory
+WORKDIR /app
+
+# Expose port
+EXPOSE 8080
+
+# Set environment variables
+# These override config file settings when config is loaded
+ENV RUST_LOG=info
+ENV NEWS_MCP_HOST=0.0.0.0
+ENV NEWS_MCP_PORT=8080
+ENV NEWS_MCP_TRANSPORT=http
+ENV NEWS_MCP_POLL_INTERVAL=3600
+ENV NEWS_MCP_LOG_LEVEL=info
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+# Volume for optional custom configuration
+# Mount your config.toml here to override defaults
+VOLUME ["/etc/news-mcp"]
+
+# Start command (no shell needed for scratch image)
+# Config file at /etc/news-mcp/config.toml is used if it exists
+# If config file doesn't exist or is inaccessible, server uses env vars + defaults
+ENTRYPOINT ["/app/news-mcp"]
+CMD ["serve", "--config", "/etc/news-mcp/config.toml"]

@@ -26,7 +26,7 @@ logging = []
 rust-mcp-sdk = { version = "0.9", default-features = false, features = ["server", "macros", "stdio", "hyper-server", "streamable-http", "sse"] }
 
 # HTTP client
-reqwest = { version = "0.13", features = ["json"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 reqwest-middleware = "0.5"
 reqwest-retry = "0.9"
 

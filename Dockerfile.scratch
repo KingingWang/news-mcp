@@ -1,0 +1,74 @@
+# ============================================================================
+# Dockerfile.scratch - 使用 debian:bookworm-slim 基础镜像
+# 由于依赖包含 glibc-linked 库，使用 debian slim 作为最小化替代方案
+# 镜像大小约 50MB，比 scratch 大但兼容性更好
+# ============================================================================
+#
+# 构建命令:
+#   docker build -f Dockerfile.scratch -t news-mcp:local .
+#
+# 运行命令 (使用环境变量):
+#   docker run -d -p 8080:8080 \
+#     -e NEWS_MCP_HOST=0.0.0.0 \
+#     -e NEWS_MCP_PORT=8080 \
+#     -e NEWS_MCP_TRANSPORT=http \
+#     news-mcp:local
+#
+# 运行命令 (挂载自定义配置):
+#   docker run -d -p 8080:8080 \
+#     -v /path/to/config.toml:/etc/news-mcp/config.toml:ro \
+#     news-mcp:local
+#
+# 配置文件说明:
+# - 默认配置嵌入在二进制中
+# - 挂载到 /etc/news-mcp/config.toml 的配置文件会覆盖默认值
+# - 环境变量 NEWS_MCP_* 会进一步覆盖配置文件中的设置
+# - 如果配置文件不存在，服务器会使用默认配置
+
+# ----------------------------------------------------------------------------
+# 阶段 1: Builder
+# ----------------------------------------------------------------------------
+FROM rust:1.88-bookworm AS builder
+
+WORKDIR /app
+
+# 复制依赖文件
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+
+# 构建 release 二进制
+RUN cargo build --release --bin news-mcp
+
+# 剥离调试符号
+RUN strip /app/target/release/news-mcp
+
+# ----------------------------------------------------------------------------
+# 阶段 2: Runtime - debian:bookworm-slim
+# ----------------------------------------------------------------------------
+FROM debian:bookworm-slim
+
+# 安装必要的运行时依赖 (CA 证书和 SSL 库)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# 复制二进制文件
+COPY --from=builder /app/target/release/news-mcp /usr/local/bin/news-mcp
+
+# 环境变量配置 (优先级高于配置文件)
+ENV RUST_LOG=info
+ENV NEWS_MCP_HOST=0.0.0.0
+ENV NEWS_MCP_PORT=8080
+ENV NEWS_MCP_TRANSPORT=http
+ENV NEWS_MCP_POLL_INTERVAL=3600
+ENV NEWS_MCP_LOG_LEVEL=info
+
+# 声明配置卷 (可选挂载)
+VOLUME ["/etc/news-mcp"]
+
+# 暴露端口
+EXPOSE 8080
+
+# 入口点 - 尝试加载配置文件，如果不存在则使用默认配置
+ENTRYPOINT ["news-mcp"]
+CMD ["serve", "--config", "/etc/news-mcp/config.toml"]

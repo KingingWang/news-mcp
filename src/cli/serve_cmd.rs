@@ -18,7 +18,18 @@ pub async fn serve_command(
 
     // Load or create configuration
     let mut config = if let Some(path) = config_path {
-        AppConfig::from_path(path)?
+        // Try to load config file, if it fails, use defaults and log a warning
+        match AppConfig::from_path(&path) {
+            Ok(cfg) => cfg,
+            Err(e) => {
+                warn!(
+                    "Failed to load config from {}: {}. Using default configuration with environment variables.",
+                    path.display(),
+                    e
+                );
+                create_config_from_cmd(cmd)
+            }
+        }
     } else {
         create_config_from_cmd(cmd)
     };
