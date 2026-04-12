@@ -1,6 +1,6 @@
 [package]
 name = "news-mcp"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Rust MCP server for fetching news from RSS feeds with background polling and multiple transport modes"
 authors = ["KingingWang <KingingWang@foxmail.com>"]
