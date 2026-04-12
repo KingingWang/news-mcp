@@ -163,10 +163,10 @@ jobs:
 
     - name: Test Docker image
       run: |
-        docker run -d --name test-container -p 8080:8080 news-mcp:test
+        docker run -d --name test-container -p 8080:8080 -e NEWS_MCP_POLL=false news-mcp:test
         trap 'docker logs test-container || true; docker stop test-container || true; docker rm test-container || true' EXIT
 
-        sleep 5
+        sleep 10
 
         curl -fsSI http://127.0.0.1:8080/health || true
         docker logs test-container
