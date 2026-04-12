@@ -228,10 +228,10 @@ curl http://localhost:8080/health
 | technology | Tech news | TechCrunch, Ars Technica, The Verge |
 | science | Science news | ScienceDaily |
 | hackernews | Hacker News | HN API |
-| instant | 即时新闻 | chinanews.com.cn |
-| headlines | 要闻导读 | chinanews.com.cn |
-| politics | 时政新闻 | chinanews.com.cn |
-| finance | 败经新闻 | chinanews.com.cn |
+| instant | Instant News | chinanews.com.cn |
+| headlines | Headlines | chinanews.com.cn |
+| politics | Politics | chinanews.com.cn |
+| finance | Finance | chinanews.com.cn |
 | ... | ... | ... |
 
 See [README.md](../README.md) for full category list.

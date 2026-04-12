@@ -24,27 +24,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Science: ScienceDaily
 - Hacker News API integration via newswrap crate
 - China News (chinanews.com.cn) support with 21 categories:
-  - 即时新闻 (Instant)
-  - 要闻导读 (Headlines)
-  - 时政新闻 (Politics)
-  - 东西问 (EastWest)
-  - 社会新闻 (Society)
-  - 败经新闻 (Finance)
-  - 生活 (Life)
-  - 健康 (Wellness)
-  - 大湾区 (GreaterBayArea)
-  - 华人 (Chinese)
-  - 视频 (Video)
-  - 图片 (Photo)
-  - 创意 (Creative)
-  - 直播 (Live)
-  - 教育 (Education)
-  - 法治 (Law)
-  - 同心 (UnitedFront)
-  - 铸牢中华民族共同体意识 (EthnicUnity)
-  - 一带一路 (BeltAndRoad)
-  - 理论 (Theory)
-  - 中国—东盟商贸资讯平台 (Asean)
+  - Instant
+  - Headlines
+  - Politics
+  - East-West Dialogue
+  - Society
+  - Finance
+  - Life
+  - Health
+  - Greater Bay Area
+  - Overseas Chinese
+  - Video
+  - Photo
+  - Creative
+  - Live
+  - Education
+  - Law
+  - United Front
+  - Ethnic Unity
+  - Belt and Road
+  - Theory
+  - ASEAN Trade
 - Background polling with configurable intervals
 - Multiple transport modes:
   - stdio (for Claude Desktop integration)

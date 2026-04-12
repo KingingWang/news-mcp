@@ -1,71 +1,101 @@
-# News MCP Server 设计文档
+# News MCP Server Architecture / 架构设计
 
-## 1. 项目概述
+This document describes the architecture and design decisions of the News MCP Server.
 
-**项目名称**: News MCP Server  
-**项目类型**: Rust MCP (Model Context Protocol) 服务器  
-**核心功能**: 获取新闻 RSS 源，支持后台轮询、内存缓存，通过 MCP 协议提供新闻查询工具  
-**目标用户**: Claude Desktop 用户、AI 助手开发者
+本文档描述 News MCP Server 的架构和设计决策。
 
-## 2. 系统架构
+## Table of Contents / 目录
 
-```mermaid
-flowchart TB
-    subgraph Client["客户端"]
-        CD["Claude Desktop"]
-    end
-    
-    subgraph Server["NewsMcpServer"]
-        Transport["Transport<br/>(stdio/http/sse)"]
-        Handler["Handler"]
-        ToolRegistry["Tool Registry"]
-        
-        subgraph Tools["MCP 工具"]
-            GN["get_news"]
-            SN["search_news"]
-            HC["health_check"]
-            GC["get_categories"]
-            RN["refresh_news"]
-        end
-    end
-    
-    subgraph Core["核心组件"]
-        Cache["Cache<br/>(RwLock)"]
-        Poller["Poller<br/>(background)"]
-        NewsService["News Service<br/>(HTTP + retry)"]
-    end
-    
-    subgraph Feeds["RSS 源"]
-        Tech["TechCrunch<br/>Ars Technica<br/>The Verge"]
-        Sci["ScienceDaily"]
-        HN["Hacker News"]
-        CN["中国新闻网<br/>(21个分类)"]
-    end
-    
-    CD -->|"MCP Protocol"| Transport
-    Transport --> Handler
-    Handler --> ToolRegistry
-    ToolRegistry --> Tools
-    
-    Tools --> Cache
-    Poller --> Cache
-    Poller --> NewsService
-    NewsService --> Feeds
+- [System Overview](#system-overview)
+- [Core Components](#core-components)
+- [Data Flow](#data-flow)
+- [Design Decisions](#design-decisions)
+- [Extension Points](#extension-points)
+- [Technology Stack](#technology-stack)
+
+## System Overview / 系统概述
+
+News MCP Server is a Rust-based MCP (Model Context Protocol) server that fetches news from multiple RSS feeds and APIs with background polling and caching.
+
+News MCP Server 是一个基于 Rust 的 MCP 服务器，从多个 RSS 源和 API 获取新闻，支持后台轮询和缓存。
+
+### Architecture Diagram / 架构图
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           Clients                                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                  │
+│  │Claude Desktop│  │ HTTP API   │  │ SSE Client  │                  │
+│  └─────────────┘  └─────────────┘  └─────────────┘                  │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │ MCP Protocol
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Transport Layer                                  │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐                 │
+│  │ stdio   │  │  HTTP   │  │  SSE    │  │ hybrid  │                 │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘                 │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     MCP Handler                                       │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │  Tool Registry: get_news, search_news, health_check, etc.   │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      News Cache                                       │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │  RwLock<HashMap<NewsCategory, Vec<NewsArticle>>>            │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+          ┌──────────────────┴──────────────────┐
+          │                                      │
+          ▼                                      ▼
+┌─────────────────────┐              ┌─────────────────────┐
+│   News Poller       │              │   Manual Refresh    │
+│ (Background Task)   │              │   (refresh_news)    │
+└─────────────────────┘              └─────────────────────┘
+          │                                      │
+          └──────────────────┬──────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    News Sources                                       │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  NewsSource Trait (Pluggable)                                 │   │
+│  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐ │   │
+│  │  │ NewsService    │  │  HnService     │  │ (Custom impl)  │ │   │
+│  │  │ (RSS Feeds)    │  │ (HN API)       │  │               │ │   │
+│  │  └────────────────┘  └────────────────┘  └────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    External Sources                                   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────────────┐   │
+│  │TechCrunch│ │ Ars Tech │ │ The Verge│ │ China News (21 cats)  │   │
+│  └──────────┘ └──────────┘ └──────────┘ └───────────────────────┘   │
+│  ┌──────────┐ ┌──────────┐                                           │
+│  │ScienceDaily│ │Hacker News│                                          │
+│  └──────────┘ ┌──────────┘                                           │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 3. 核心组件
+## Core Components / 核心组件
 
-### 3.1 Cache Layer (`src/cache/`)
+### 1. Cache Layer (`src/cache/`)
 
-**职责**: 内存缓存新闻文章
+**Responsibility**: Thread-safe in-memory storage for news articles.
 
-**实现**:
-- 使用 `RwLock<HashMap<NewsCategory, Vec<NewsArticle>>>` 保证线程安全
-- 支持按类别存储和检索
-- 支持标题/描述全文搜索
-- 支持配置最大缓存数量
+**职责**: 线程安全的内存新闻文章存储。
 
-**关键结构**:
+**Implementation**:
 ```rust
 pub struct NewsCache {
     articles: RwLock<HashMap<NewsCategory, Vec<NewsArticle>>>,
@@ -74,172 +104,300 @@ pub struct NewsCache {
 }
 ```
 
-### 3.2 Poller (`src/poller/`)
+**Key Features**:
+- Thread-safe via `RwLock` (allows concurrent reads)
+- Per-category storage with configurable limits
+- Timestamp tracking for freshness
+- Full-text search across title/description
 
-**职责**: 后台定时轮询 RSS 源
+**关键特性**:
+- 通过 `RwLock` 实现线程安全（允许并发读取）
+- 按类别存储，可配置限制
+- 时间戳跟踪数据新鲜度
+- 支持标题/描述全文搜索
 
-**实现**:
-- 独立的异步任务，定时获取所有分类新闻
-- 使用 `AtomicBool` 标记首次轮询完成状态
-- 提供 `wait_for_initial_poll()` 阻塞接口
-- 并发获取所有分类
+### 2. Poller (`src/poller/`)
 
-**关键流程**:
-```mermaid
-flowchart LR
-    A[启动] --> B[等待初始轮询完成]
-    B --> C[进入后台轮询循环]
-    C --> D[获取所有分类]
-    D --> E[并发请求]
-    E --> F[解析 RSS]
-    F --> G[更新缓存]
-    G --> H[等待下次轮询]
-    H --> C
+**Responsibility**: Background task that periodically fetches news from all sources.
+
+**职责**: 定期从所有源获取新闻的后台任务。
+
+**Implementation**:
+```rust
+pub struct NewsPoller {
+    sources: Vec<Arc<dyn NewsSource>>,
+    cache: Arc<NewsCache>,
+    config: PollerConfig,
+    running: AtomicBool,
+    initial_poll_completed: AtomicBool,
+}
 ```
 
-### 3.3 Service (`src/service/`)
+**Key Features**:
+- Pluggable sources via `NewsSource` trait
+- Configurable polling interval
+- Atomic flags for state tracking
+- Wait mechanism for initial poll completion
 
-**职责**: RSS 源获取和解析
+**关键特性**:
+- 通过 `NewsSource` trait 实现可插拔源
+- 可配置轮询间隔
+- 使用 Atomic 标志跟踪状态
+- 提供初始轮询完成等待机制
+
+### 3. Service Layer (`src/service/`)
+
+**Responsibility**: Fetch and parse news from external sources.
+
+**职责**: 从外部源获取和解析新闻。
+
+**NewsSource Trait** (Extensibility Pattern):
+```rust
+#[async_trait]
+pub trait NewsSource: Send + Sync {
+    fn name(&self) -> &str;
+    async fn fetch(&self) -> Result<HashMap<NewsCategory, Vec<NewsArticle>>>;
+}
+```
+
+**Implementations**:
+- `NewsService`: RSS/Atom feed fetching with retry middleware
+- `HnService`: Hacker News API via `newswrap` crate
 
 **实现**:
-- 使用 `reqwest` + `reqwest-middleware` 实现 HTTP 客户端
-- 集成指数退避重试策略 (`reqwest-retry`)
-- 使用 `feed-rs` 解析 RSS/Atom 格式
-- 支持日期排序（最新优先）
+- `NewsService`: RSS/Atom 获取，带重试中间件
+- `HnService`: 通过 `newswrap` crate 使用 Hacker News API
 
-### 3.4 Server (`src/server/`)
+### 4. Server (`src/server/`)
 
-**职责**: MCP 协议实现
+**Responsibility**: MCP protocol implementation and tool handling.
+
+**职责**: MCP 协议实现和工具处理。
+
+**Transport Modes**:
+| Mode | Use Case | Description |
+|------|----------|-------------|
+| `stdio` | Claude Desktop | Standard input/output communication |
+| `http` | Web/API clients | Streamable HTTP protocol |
+| `sse` | Real-time updates | Server-Sent Events |
+| `hybrid` | Mixed clients | HTTP + SSE combined |
 
 **传输模式**:
-- **stdio**: 适合 Claude Desktop 集成
-- **HTTP**: 适合 Web 应用
-- **SSE**: Server-Sent Events 推送
-- **hybrid**: 同时支持 stdio 和 HTTP
+| 模式 | 用途 | 描述 |
+|------|----------|-------------|
+| `stdio` | Claude Desktop | 标准输入/输出通信 |
+| `http` | Web/API 客户端 | Streamable HTTP 协议 |
+| `sse` | 实时更新 | Server-Sent Events |
+| `hybrid` | 混合客户端 | HTTP + SSE 组合 |
 
-**关键结构**:
+### 5. Tools (`src/tools/`)
+
+**MCP Tools Provided**:
+
+| Tool | Function | Parameters |
+|------|----------|------------|
+| `get_news` | Fetch articles by category | `category`, `limit`, `format` |
+| `search_news` | Search cached articles | `query`, `category`, `limit` |
+| `get_categories` | List available categories | - |
+| `health_check` | Server status and stats | `check_type`, `verbose` |
+| `refresh_news` | Manual cache refresh | `category` (optional) |
+
+**Output Formats**: `markdown`, `json`, `text`
+
+## Data Flow / 数据流
+
+### Startup Flow / 启动流程
+
+```
+1. Load config (TOML + env overrides)
+2. Create NewsCache instance
+3. Initialize NewsSource implementations (NewsService, HnService)
+4. Create NewsPoller with sources and cache
+5. Start poller background task
+6. Wait for initial poll completion
+7. Start transport layer (stdio/http/sse)
+8. Ready to serve MCP requests
+```
+
+### Request Flow / 请求流程
+
+```
+Client Request → Transport → MCP Handler → Tool Registry → Tool Implementation
+                                                                    ↓
+                                                              Read from Cache
+                                                                    ↓
+                                                              Format Response
+                                                                    ↓
+Client Response ← Transport ← MCP Handler ← Tool Registry ←───┘
+```
+
+### Polling Flow / 轮询流程
+
+```
+┌─────────┐
+│  Start  │
+└────┬────┘
+     │
+     ▼
+┌─────────────────┐
+│ Initial Poll    │──► Fetch all sources concurrently
+└────┬────────────┘    Parse RSS/API responses
+     │                 Update cache
+     │                 Set initial_poll_completed = true
+     ▼
+┌─────────────────┐
+│ Sleep (interval)│
+└────┬────────────┘
+     │
+     ▼
+┌─────────────────┐
+│ Poll Cycle      │──► Same as initial poll
+└────┬────────────┘
+     │
+     └◄─── Loop until stopped
+```
+
+## Design Decisions / 设计决策
+
+### 1. NewsSource Trait for Extensibility
+
+**Decision**: Use a trait-based architecture for news sources.
+
+**Rationale**: 
+- Allows adding new sources without modifying core code
+- Supports different fetch mechanisms (RSS, API, scraping)
+- Enables third-party extensions
+
+**决策**: 使用 trait 架构实现新闻源。
+
+**理由**:
+- 允许添加新源而不修改核心代码
+- 支持不同的获取机制（RSS、API、爬虫）
+- 支持第三方扩展
+
+### 2. RwLock for Thread Safety
+
+**Decision**: Use `RwLock<HashMap>` instead of `DashMap` or other concurrent maps.
+
+**Rationale**:
+- Multiple readers (MCP tools) vs single writer (poller)
+- Simpler implementation for moderate concurrency
+- Consider `DashMap` for higher concurrent write scenarios
+
+**决策**: 使用 `RwLock<HashMap>` 而非 `DashMap`。
+
+**理由**:
+- 多读者（MCP 工具）vs 单写者（轮询器）
+- 中等并发场景实现更简单
+- 高并发写场景可考虑 `DashMap`
+
+### 3. Concurrent Fetching
+
+**Decision**: Fetch multiple RSS feeds concurrently using `futures::future::join_all`.
+
+**Rationale**:
+- Reduces total fetch time for categories with multiple sources
+- Technology category has 3 feeds → 3x faster with concurrency
+- Configurable retry middleware handles failures
+
+**决策**: 使用 `futures::future::join_all` 并发获取多个 RSS 源。
+
+**理由**:
+- 减少多源类别的总获取时间
+- Technology 类别有 3 个源 → 并发后快 3 倍
+- 可配置重试中间件处理失败
+
+### 4. Configurable Feed Sources
+
+**Decision**: Support TOML configuration with environment variable overrides.
+
+**Rationale**:
+- Users can customize feeds without code changes
+- Docker deployments can use env vars
+- Falls back to built-in defaults
+
+**决策**: 支持 TOML 配置和环境变量覆盖。
+
+**理由**:
+- 用户无需修改代码即可自定义源
+- Docker 部署可使用环境变量
+- 回退到内置默认值
+
+## Extension Points / 扩展点
+
+### Adding a New News Source / 添加新新闻源
+
+1. Implement `NewsSource` trait:
 ```rust
-pub struct NewsMcpServer {
-    config: Config,
-    cache: NewsCache,
-    tool_registry: ToolRegistry,
-}
-
-pub struct NewsMcpHandler {
-    server: Arc<NewsMcpServer>,
+#[async_trait]
+impl NewsSource for MyCustomSource {
+    fn name(&self) -> &str {
+        "My Custom Source"
+    }
+    
+    async fn fetch(&self) -> Result<HashMap<NewsCategory, Vec<NewsArticle>>> {
+        // Your fetch logic
+    }
 }
 ```
 
-### 3.5 Tools (`src/tools/`)
-
-| 工具 | 功能 | 参数 |
-|------|------|------|
-| get_news | 获取新闻列表（类别动态生成） | category, limit, format |
-| search_news | 搜索新闻（类别动态生成） | query, category, limit |
-| get_categories | 获取分类列表 | - |
-| health_check | 健康检查 | check_type, verbose |
-| refresh_news | 手动刷新 | category |
-
-**支持格式**: markdown, json, text
-
-**类别特性**: 工具的类别参数根据配置文件动态生成，MCP 客户端会看到实际可用的类别列表。
-
-## 4. 数据模型
-
-### NewsCategory
-
-支持 30+ 个分类（根据配置动态生成）：
-- **英文分类**: Technology (TechCrunch, Ars Technica, The Verge), Science (ScienceDaily), HackerNews
-- **中文分类**: 即时新闻, 要闻导读, 时政新闻, 东西问, 国际新闻, 社会新闻, 财经新闻, 生活, 健康, 大湾区, 华人, 文娱新闻, 体育新闻, 视频, 图片, 创意, 直播, 教育, 法治, 同心, 铸牢中华民族共同体意识, 一带一路, 理论, 中国—东盟商贸资讯平台
-
-### NewsArticle
-
+2. Register in poller:
 ```rust
-pub struct NewsArticle {
-    title: String,
-    description: Option<String>,
-    link: String,
-    source: String,
-    category: NewsCategory,
-    published_at: Option<DateTime<Utc>>,
-    author: Option<String>,
+let sources: Vec<Arc<dyn NewsSource>> = vec![
+    Arc::new(NewsService::with_config(config.clone())),
+    Arc::new(HnService::new()),
+    Arc::new(MyCustomSource::new()), // Add your source
+];
+```
+
+### Adding a New MCP Tool / 添加新 MCP 工具
+
+1. Create tool file in `src/tools/`:
+```rust
+pub struct MyTool;
+
+impl MyTool {
+    pub async fn execute(&self, params: MyParams, cache: &NewsCache) -> Result<String> {
+        // Tool logic
+    }
 }
 ```
 
-## 5. 配置
-
-`config.toml`:
-```toml
-[server]
-name = "news-mcp"
-version = "0.1.0"
-host = "127.0.0.1"
-port = 8080
-transport_mode = "http"  # stdio | http | sse | hybrid
-
-[poller]
-interval_secs = 3600
-enabled = true
-
-[cache]
-max_articles_per_category = 100
-
-[logging]
-level = "info"
-enable_console = true
+2. Register in `ToolRegistry`:
+```rust
+registry.register("my_tool", Box::new(MyTool));
 ```
 
-## 6. RSS 源
+### Adding a New Category / 添加新类别
 
-### 国外新闻
-- **Technology**: TechCrunch, Ars Technica, The Verge
-- **Science**: ScienceDaily
-
-### 中国新闻网 (21个分类)
-- 即时新闻、要闻导读、时政新闻、东西问、社会新闻
-- 财经新闻、生活、健康、大湾区、华人
-- 视频、图片、创意、直播、教育、法治
-- 同心、铸牢中华民族共同体意识、一带一路、理论、中国—东盟商贸资讯平台
-
-## 7. 部署方式
-
-### 本地运行
-```bash
-./target/release/news-mcp serve --mode stdio    # Claude Desktop
-./target/release/news-mcp serve --mode http      # HTTP 服务
+1. Add enum variant in `src/cache/news_cache.rs`:
+```rust
+pub enum NewsCategory {
+    // ... existing
+    MyNewCategory,
+}
 ```
 
-### Docker
-```bash
-docker build -t news-mcp .
-docker run -p 8080:8080 news-mcp
+2. Add feed URLs in config or `src/utils/mod.rs`:
+```rust
+NewsCategory::MyNewCategory => vec!["https://example.com/feed.xml"],
 ```
 
-## 8. 测试
+## Technology Stack / 技术栈
 
-- **单元测试**: 缓存、服务、工具、配置
-- **集成测试**: 端到端工作流
-- **E2E 测试**: HTTP/stdio 传输模式
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| Language | Rust 1.75+ | Performance, safety |
+| Async Runtime | Tokio | Async I/O, tasks |
+| HTTP Client | reqwest + reqwest-middleware | Fetching with retry |
+| RSS Parsing | feed-rs | RSS/Atom parsing |
+| MCP SDK | rust-mcp-sdk | Protocol implementation |
+| HN API | newswrap | Hacker News client |
+| Logging | tracing + tracing-subscriber | Structured logging |
+| Config | toml + serde | Configuration |
+| Serialization | serde_json | JSON output |
+| CLI | clap | Command-line parsing |
 
-```bash
-cargo test              # 所有测试
-cargo test --test unit  # 单元测试
-cargo test --test e2e   # E2E 测试
-```
+---
 
-## 9. 技术栈
-
-- **语言**: Rust 1.75+
-- **异步**: tokio
-- **HTTP**: reqwest + reqwest-middleware
-- **RSS 解析**: feed-rs
-- **MCP SDK**: rust-mcp-sdk
-- **日志**: tracing + tracing-subscriber
-- **配置**: toml + serde
-
-## 10. 扩展点
-
-1. **新增新闻源**: 在 `src/utils/mod.rs` 的 `get_feed_urls()` 添加
-2. **新增分类**: 在 `src/cache/news_cache.rs` 的 `NewsCategory` 枚举添加
-3. **新增工具**: 在 `src/tools/` 实现 `Tool` trait 并注册到 `ToolRegistry`
-4. **传输模式**: 在 `src/server/transport/` 实现新 transport
+*Last updated: 2026-04-12*
