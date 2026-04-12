@@ -1,59 +1,124 @@
 //! Hacker News service implementation
 //!
-//! Handles fetching and processing stories from Hacker News API.
+//! Fetches stories from the Hacker News Firebase API via plain HTTP.
 
 use crate::cache::{NewsArticle, NewsCategory};
 use crate::error::{Error, Result};
 use crate::service::NewsSource;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use newswrap::client::HackerNewsClient;
-use newswrap::items::stories::HackerNewsStory;
+use chrono::DateTime;
+use serde::Deserialize;
 use std::collections::HashMap;
-use time::OffsetDateTime;
 use tracing::{debug, info, warn};
 
-/// Hacker News service for fetching stories
+const HN_API_BASE: &str = "https://hacker-news.firebaseio.com/v0";
+
+/// Raw HN item returned by the Firebase API
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct HnItem {
+    id: u64,
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    text: String,
+    #[serde(default)]
+    url: String,
+    #[serde(default)]
+    by: String,
+    /// Unix timestamp
+    #[serde(default)]
+    time: i64,
+    #[serde(default)]
+    score: i64,
+    /// item type: "story", "job", "comment", etc.
+    #[serde(default, rename = "type")]
+    item_type: String,
+}
+
+/// Hacker News service for fetching stories via HTTP
 pub struct HnService {
-    /// HN API client
-    client: HackerNewsClient,
+    client: reqwest::Client,
 }
 
 impl HnService {
     /// Create a new Hacker News service
     pub fn new() -> Self {
         Self {
-            client: HackerNewsClient::new(),
+            client: reqwest::Client::new(),
         }
     }
 
-    /// Convert HN story to NewsArticle with text cleaning
-    fn story_to_article(story: &HackerNewsStory) -> Option<NewsArticle> {
-        // Skip stories without valid content
-        if story.title.is_empty() {
-            warn!("Skipping story with empty title: ID {}", story.id);
+    /// Fetch story IDs from a given endpoint, then fetch each story.
+    async fn fetch_stories(&self, endpoint: &str, limit: usize) -> Result<Vec<NewsArticle>> {
+        let url = format!("{}/{}.json", HN_API_BASE, endpoint);
+        debug!("Fetching story IDs from {}", url);
+
+        let ids: Vec<u64> = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| Error::rss(format!("Failed to fetch {}: {}", endpoint, e)))?
+            .json()
+            .await
+            .map_err(|e| Error::rss(format!("Failed to parse {}: {}", endpoint, e)))?;
+
+        let limited_ids: Vec<_> = ids.into_iter().take(limit).collect();
+        self.fetch_items_by_ids(&limited_ids).await
+    }
+
+    /// Fetch top stories
+    pub async fn fetch_top_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
+        debug!("Fetching {} top stories from Hacker News", limit);
+        self.fetch_stories("topstories", limit).await
+    }
+
+    /// Fetch best stories
+    pub async fn fetch_best_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
+        debug!("Fetching {} best stories from Hacker News", limit);
+        self.fetch_stories("beststories", limit).await
+    }
+
+    /// Fetch latest/new stories
+    pub async fn fetch_new_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
+        debug!("Fetching {} new stories from Hacker News", limit);
+        self.fetch_stories("newstories", limit).await
+    }
+
+    /// Fetch Ask HN stories
+    pub async fn fetch_ask_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
+        debug!("Fetching {} Ask HN stories", limit);
+        self.fetch_stories("askstories", limit).await
+    }
+
+    /// Fetch Show HN stories
+    pub async fn fetch_show_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
+        debug!("Fetching {} Show HN stories", limit);
+        self.fetch_stories("showstories", limit).await
+    }
+
+    /// Convert a raw HN item to a NewsArticle
+    fn item_to_article(item: &HnItem) -> Option<NewsArticle> {
+        if item.title.is_empty() || item.item_type != "story" {
             return None;
         }
 
-        // Clean and process the title
-        let title = clean_text(&story.title);
+        let title = clean_text(&item.title);
 
-        // Clean and process the text content (for Ask HN etc.)
-        let description = if !story.text.is_empty() {
-            Some(clean_text(&story.text))
+        let description = if !item.text.is_empty() {
+            Some(clean_text(&item.text))
         } else {
             None
         };
 
-        // Use URL if available, otherwise link to HN discussion
-        let link = if !story.url.is_empty() {
-            story.url.clone()
+        let link = if !item.url.is_empty() {
+            item.url.clone()
         } else {
-            format!("https://news.ycombinator.com/item?id={}", story.id)
+            format!("https://news.ycombinator.com/item?id={}", item.id)
         };
 
-        // Convert time to chrono DateTime
-        let published_at = convert_hn_time(&story.created_at);
+        let published_at = DateTime::from_timestamp(item.time, 0);
 
         Some(NewsArticle::new(
             title,
@@ -62,130 +127,52 @@ impl HnService {
             "Hacker News".to_string(),
             NewsCategory::HackerNews,
             published_at,
-            Some(story.by.clone()),
+            if item.by.is_empty() {
+                None
+            } else {
+                Some(item.by.clone())
+            },
         ))
     }
 
-    /// Fetch top stories from Hacker News
-    pub async fn fetch_top_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
-        debug!("Fetching {} top stories from Hacker News", limit);
-
-        let story_ids = self
-            .client
-            .realtime
-            .get_top_stories()
-            .await
-            .map_err(|e| Error::rss(format!("Failed to fetch top stories: {}", e)))?;
-
-        let limited_ids: Vec<_> = story_ids.into_iter().take(limit).collect();
-        self.fetch_stories_by_ids(&limited_ids).await
-    }
-
-    /// Fetch best stories from Hacker News
-    pub async fn fetch_best_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
-        debug!("Fetching {} best stories from Hacker News", limit);
-
-        let story_ids = self
-            .client
-            .realtime
-            .get_best_stories()
-            .await
-            .map_err(|e| Error::rss(format!("Failed to fetch best stories: {}", e)))?;
-
-        let limited_ids: Vec<_> = story_ids.into_iter().take(limit).collect();
-        self.fetch_stories_by_ids(&limited_ids).await
-    }
-
-    /// Fetch latest/new stories from Hacker News
-    pub async fn fetch_new_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
-        debug!("Fetching {} new stories from Hacker News", limit);
-
-        let story_ids = self
-            .client
-            .realtime
-            .get_latest_stories()
-            .await
-            .map_err(|e| Error::rss(format!("Failed to fetch new stories: {}", e)))?;
-
-        let limited_ids: Vec<_> = story_ids.into_iter().take(limit).collect();
-        self.fetch_stories_by_ids(&limited_ids).await
-    }
-
-    /// Fetch Ask HN stories
-    pub async fn fetch_ask_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
-        debug!("Fetching {} Ask HN stories", limit);
-
-        let story_ids = self
-            .client
-            .realtime
-            .get_ask_hacker_news_stories()
-            .await
-            .map_err(|e| Error::rss(format!("Failed to fetch Ask HN stories: {}", e)))?;
-
-        let limited_ids: Vec<_> = story_ids.into_iter().take(limit).collect();
-        self.fetch_stories_by_ids(&limited_ids).await
-    }
-
-    /// Fetch Show HN stories
-    pub async fn fetch_show_stories(&self, limit: usize) -> Result<Vec<NewsArticle>> {
-        debug!("Fetching {} Show HN stories", limit);
-
-        let story_ids = self
-            .client
-            .realtime
-            .get_show_hacker_news_stories()
-            .await
-            .map_err(|e| Error::rss(format!("Failed to fetch Show HN stories: {}", e)))?;
-
-        let limited_ids: Vec<_> = story_ids.into_iter().take(limit).collect();
-        self.fetch_stories_by_ids(&limited_ids).await
-    }
-
-    /// Fetch stories by IDs with concurrent processing
-    async fn fetch_stories_by_ids(
-        &self,
-        ids: &[newswrap::HackerNewsID],
-    ) -> Result<Vec<NewsArticle>> {
+    /// Fetch items by IDs concurrently (chunks of 5)
+    async fn fetch_items_by_ids(&self, ids: &[u64]) -> Result<Vec<NewsArticle>> {
         let mut articles = Vec::with_capacity(ids.len());
 
-        // Process in chunks of 5 for concurrent fetching
-        let chunk_size = 5;
-        for chunk in ids.chunks(chunk_size) {
+        for chunk in ids.chunks(5) {
             let mut tasks = Vec::new();
-
-            for id in chunk {
+            for &id in chunk {
                 let client = &self.client;
-                let task = async move { client.items.get_story(*id).await };
-                tasks.push(task);
+                let url = format!("{}/item/{}.json", HN_API_BASE, id);
+                tasks.push(async move {
+                    debug!("Fetching HN item {}", id);
+                    client.get(&url).send().await?.json::<HnItem>().await
+                });
             }
 
-            // Execute chunk concurrently
             let results = futures::future::join_all(tasks).await;
 
             for result in results {
                 match result {
-                    Ok(story) => {
-                        if let Some(article) = Self::story_to_article(&story) {
+                    Ok(item) => {
+                        if let Some(article) = Self::item_to_article(&item) {
+                            debug!("Successfully fetched story: {}", item.title);
                             articles.push(article);
-                            debug!("Successfully fetched story: {}", story.title);
                         }
                     }
                     Err(e) => {
-                        warn!("Failed to fetch story: {}", e);
+                        warn!("Failed to fetch HN item: {}", e);
                     }
                 }
             }
         }
 
-        // Sort by score (descending)
-        articles.sort_by(|a, b| {
-            // We don't have score in NewsArticle, so sort by published_at
-            match (a.published_at, b.published_at) {
-                (Some(a_date), Some(b_date)) => b_date.cmp(&a_date),
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => std::cmp::Ordering::Equal,
-            }
+        // Sort by published time (newest first)
+        articles.sort_by(|a, b| match (&a.published_at, &b.published_at) {
+            (Some(a_date), Some(b_date)) => b_date.cmp(a_date),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => std::cmp::Ordering::Equal,
         });
 
         info!("Fetched {} Hacker News articles", articles.len());
@@ -258,13 +245,6 @@ fn clean_text(text: &str) -> String {
     }
 
     result.trim().to_string()
-}
-
-/// Convert HN time (time::OffsetDateTime) to chrono DateTime
-fn convert_hn_time(time: &OffsetDateTime) -> Option<DateTime<Utc>> {
-    // Convert time crate to chrono
-    let unix_timestamp = time.unix_timestamp();
-    DateTime::from_timestamp(unix_timestamp, 0)
 }
 
 #[cfg(test)]

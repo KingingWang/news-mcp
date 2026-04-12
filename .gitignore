@@ -20,7 +20,9 @@ target
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-/Cargo.lock
+# Cargo.lock is included for binary projects to ensure reproducible builds
+# /Cargo.lock
+
 *.log
 .DS_Store
 Thumbs.db
