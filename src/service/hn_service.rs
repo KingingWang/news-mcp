@@ -142,7 +142,10 @@ impl HnService {
     }
 
     /// Fetch stories by IDs with concurrent processing
-    async fn fetch_stories_by_ids(&self, ids: &[newswrap::HackerNewsID]) -> Result<Vec<NewsArticle>> {
+    async fn fetch_stories_by_ids(
+        &self,
+        ids: &[newswrap::HackerNewsID],
+    ) -> Result<Vec<NewsArticle>> {
         let mut articles = Vec::with_capacity(ids.len());
 
         // Process in chunks of 5 for concurrent fetching
@@ -152,9 +155,7 @@ impl HnService {
 
             for id in chunk {
                 let client = &self.client;
-                let task = async move {
-                    client.items.get_story(*id).await
-                };
+                let task = async move { client.items.get_story(*id).await };
                 tasks.push(task);
             }
 

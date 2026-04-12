@@ -96,7 +96,9 @@ impl GetNewsToolImpl {
     }
 
     /// Build properties for the tool input schema
-    fn build_input_schema_properties(&self) -> std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>> {
+    fn build_input_schema_properties(
+        &self,
+    ) -> std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>> {
         let mut properties = std::collections::BTreeMap::new();
 
         // Category property

@@ -47,7 +47,10 @@ impl NewsService {
             }
         }
         // Fallback to hardcoded defaults
-        get_feed_urls(category).into_iter().map(|s| s.to_string()).collect()
+        get_feed_urls(category)
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect()
     }
 
     /// Fetch RSS feed from URL and parse articles

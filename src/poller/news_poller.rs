@@ -25,7 +25,11 @@ pub struct NewsPoller {
 
 impl NewsPoller {
     /// Create a new poller with the given sources
-    pub fn new(sources: Vec<Arc<dyn NewsSource>>, cache: Arc<NewsCache>, config: PollerConfig) -> Self {
+    pub fn new(
+        sources: Vec<Arc<dyn NewsSource>>,
+        cache: Arc<NewsCache>,
+        config: PollerConfig,
+    ) -> Self {
         Self {
             sources,
             cache,

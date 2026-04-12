@@ -81,10 +81,7 @@ impl Tool for RefreshNewsToolImpl {
                     e
                 ))
             })?;
-            output.push_str(&format!(
-                "Category: {}\n\n",
-                category.display_name()
-            ));
+            output.push_str(&format!("Category: {}\n\n", category.display_name()));
             self.cache.get_category_news(&category).unwrap_or_default()
         } else {
             output.push_str("All categories\n\n");
@@ -107,21 +104,35 @@ impl Tool for RefreshNewsToolImpl {
             if let Some(category_str) = category_param {
                 match category_str.parse::<NewsCategory>() {
                     Ok(category) => {
-                        info!("Background refresh started for category: {}", category.display_name());
+                        info!(
+                            "Background refresh started for category: {}",
+                            category.display_name()
+                        );
                         for source in &sources {
                             match source.fetch().await {
                                 Ok(results) => {
                                     if let Some(articles) = results.get(&category) {
                                         let count = articles.len();
-                                        if let Err(e) = cache.set_category_news(category, articles.clone()) {
+                                        if let Err(e) =
+                                            cache.set_category_news(category, articles.clone())
+                                        {
                                             tracing::error!("Failed to update cache: {}", e);
                                         } else {
-                                            info!("Background refresh from {}: {} articles for {}", source.name(), count, category.display_name());
+                                            info!(
+                                                "Background refresh from {}: {} articles for {}",
+                                                source.name(),
+                                                count,
+                                                category.display_name()
+                                            );
                                         }
                                     }
                                 }
                                 Err(e) => {
-                                    tracing::error!("Source '{}' refresh failed: {}", source.name(), e);
+                                    tracing::error!(
+                                        "Source '{}' refresh failed: {}",
+                                        source.name(),
+                                        e
+                                    );
                                 }
                             }
                         }
@@ -131,16 +142,28 @@ impl Tool for RefreshNewsToolImpl {
                     }
                 }
             } else {
-                info!("Background refresh started for all categories from {} sources", sources.len());
+                info!(
+                    "Background refresh started for all categories from {} sources",
+                    sources.len()
+                );
                 for source in &sources {
                     match source.fetch().await {
                         Ok(results) => {
                             for (category, articles) in results {
                                 let count = articles.len();
                                 if let Err(e) = cache.set_category_news(category, articles) {
-                                    tracing::error!("Failed to update cache for {}: {}", category, e);
+                                    tracing::error!(
+                                        "Failed to update cache for {}: {}",
+                                        category,
+                                        e
+                                    );
                                 } else {
-                                    info!("Background refresh from {}: {} articles for {}", source.name(), count, category);
+                                    info!(
+                                        "Background refresh from {}: {} articles for {}",
+                                        source.name(),
+                                        count,
+                                        category
+                                    );
                                 }
                             }
                         }

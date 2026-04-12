@@ -86,7 +86,10 @@ impl SearchNewsToolImpl {
                         .unwrap_or_else(|| key.clone())
                 })
                 .collect();
-            format!("Optional category filter. Available: {}", categories.join(", "))
+            format!(
+                "Optional category filter. Available: {}",
+                categories.join(", ")
+            )
         }
     }
 
@@ -100,7 +103,9 @@ impl SearchNewsToolImpl {
     }
 
     /// Build properties for the tool input schema
-    fn build_input_schema_properties(&self) -> std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>> {
+    fn build_input_schema_properties(
+        &self,
+    ) -> std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>> {
         let mut properties = std::collections::BTreeMap::new();
 
         // Query property (required)
@@ -165,7 +170,9 @@ impl Tool for SearchNewsToolImpl {
         rust_mcp_sdk::schema::Tool {
             name: "search_news".to_string(),
             title: Some("Search News".to_string()),
-            description: Some("Searches cached news by keyword in title and description.".to_string()),
+            description: Some(
+                "Searches cached news by keyword in title and description.".to_string(),
+            ),
             input_schema: ToolInputSchema::new(
                 vec!["query".to_string()], // query is required
                 Some(self.build_input_schema_properties()),
