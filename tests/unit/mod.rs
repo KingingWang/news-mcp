@@ -4,5 +4,6 @@
 
 mod cache_tests;
 mod config_tests;
+mod newsnow_tests;
 mod service_tests;
 mod tool_tests;

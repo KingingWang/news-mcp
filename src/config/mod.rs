@@ -288,6 +288,33 @@ fn default_feed_sources() -> HashMap<String, FeedSourceConfig> {
         );
     }
 
+    // NewsNow Hot List categories
+    let newsnow_feeds = [
+        ("weibohot", "微博热搜", "微博热搜 - 实时热搜榜"),
+        ("baiduhot", "百度热搜", "百度热搜 - 百度实时热搜"),
+        ("zhihuhot", "知乎热榜", "知乎热榜 - 知乎热门话题"),
+        ("douyinhot", "抖音热点", "抖音热点 - 抖音热门视频"),
+        ("bilibilihot", "B站热搜", "B站热搜 - 哔哩哔哩热搜榜"),
+        ("tiebahot", "贴吧热议", "贴吧热议 - 百度贴吧热议话题"),
+        ("toutiaohot", "今日头条热点", "今日头条热点 - 头条热门资讯"),
+        ("wallstreetcnhot", "华尔街见闻热门", "华尔街见闻热门 - 财经资讯"),
+        ("clshot", "财联社热门", "财联社热门 - 金融快讯"),
+        ("thepaperhot", "澎湃热门", "澎湃热门 - 澎湃新闻热点"),
+        ("ifenghot", "凤凰网热门", "凤凰网热门 - 凤凰资讯热点"),
+    ];
+
+    for (key, name, desc) in newsnow_feeds {
+        feeds.insert(
+            key.into(),
+            FeedSourceConfig {
+                display_name: Some(name.into()),
+                description: Some(desc.into()),
+                urls: vec![], // Uses NewsNow API, not RSS
+                enabled: true,
+            },
+        );
+    }
+
     feeds
 }
 

@@ -32,8 +32,7 @@ pub struct SearchNewsTool {
     /// Optional category filter
     #[json_schema(
         title = "Category",
-        description = "Optional category filter",
-        enum_values = ["technology", "business", "science", "health", "sports", "entertainment", "general", "world"]
+        description = "Optional category filter (e.g. technology, science, hackernews, weibohot, baiduhot, zhihuhot, douyinhot, bilibilihot, tiebahot, toutiaohot, wallstreetcnhot, clshot, thepaperhot, ifenghot, instant, headlines, politics, finance, etc.)"
     )]
     pub category: Option<String>,
 

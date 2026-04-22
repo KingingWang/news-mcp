@@ -10,7 +10,7 @@ pub use transport::*;
 
 use crate::cache::NewsCache;
 use crate::config::AppConfig;
-use crate::service::{HnService, NewsService, NewsSource};
+use crate::service::{HnService, NewsNowService, NewsService, NewsSource};
 use crate::tools::ToolRegistry;
 use std::sync::Arc;
 
@@ -42,6 +42,7 @@ impl NewsMcpServer {
         let sources: Vec<Arc<dyn NewsSource>> = vec![
             Arc::new(NewsService::with_config(Arc::new(config.clone()))),
             Arc::new(HnService::new()),
+            Arc::new(NewsNowService::new()),
         ];
         let tool_registry = Arc::new(crate::tools::create_default_registry(
             cache.clone(),

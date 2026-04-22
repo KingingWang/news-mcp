@@ -1,13 +1,15 @@
 //! Service module for fetching and processing news
 //!
-//! Provides the news service for fetching RSS feeds and Hacker News.
+//! Provides the news service for fetching RSS feeds, Hacker News, and NewsNow hot lists.
 //! All sources implement the [`NewsSource`] trait for extensibility.
 
 mod hn_service;
 mod news_service;
+mod newsnow_service;
 
 pub use hn_service::*;
 pub use news_service::*;
+pub use newsnow_service::*;
 
 use crate::cache::{NewsArticle, NewsCategory};
 use crate::error::Result;

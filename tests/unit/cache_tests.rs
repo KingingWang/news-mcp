@@ -23,7 +23,7 @@ fn test_news_category_from_str() {
 #[test]
 fn test_news_category_all() {
     let categories = NewsCategory::all();
-    assert_eq!(categories.len(), 30);
+    assert_eq!(categories.len(), 41); // 30 original + 11 NewsNow hot list categories
 }
 
 #[test]
@@ -169,7 +169,7 @@ fn test_cache_categories() {
     let cache = NewsCache::new(100);
 
     let categories = cache.get_all_categories().unwrap();
-    assert_eq!(categories.len(), 30);
+    assert_eq!(categories.len(), 41); // 30 original + 11 NewsNow hot list categories
 
     for (category, count) in categories {
         assert!(count == 0); // Empty cache

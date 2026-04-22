@@ -43,6 +43,18 @@ pub enum NewsCategory {
     BeltAndRoad,
     Theory,
     Asean,
+    // NewsNow Hot List categories
+    WeiboHot,
+    BaiduHot,
+    ZhihuHot,
+    DouyinHot,
+    BilibiliHot,
+    TiebaHot,
+    ToutiaoHot,
+    WallstreetcnHot,
+    ClsHot,
+    ThepaperHot,
+    IfengHot,
 }
 
 impl std::str::FromStr for NewsCategory {
@@ -81,6 +93,18 @@ impl std::str::FromStr for NewsCategory {
             "beltandroad" | "一带一路" => Ok(NewsCategory::BeltAndRoad),
             "theory" | "理论" => Ok(NewsCategory::Theory),
             "asean" | "中国—东盟商贸资讯平台" => Ok(NewsCategory::Asean),
+            // NewsNow Hot List categories
+            "weibohot" | "微博热搜" => Ok(NewsCategory::WeiboHot),
+            "baiduhot" | "百度热搜" => Ok(NewsCategory::BaiduHot),
+            "zhihuhot" | "知乎热榜" => Ok(NewsCategory::ZhihuHot),
+            "douyinhot" | "抖音热点" => Ok(NewsCategory::DouyinHot),
+            "bilibilihot" | "b站热搜" => Ok(NewsCategory::BilibiliHot),
+            "tiebahot" | "贴吧热议" => Ok(NewsCategory::TiebaHot),
+            "toutiaohot" | "今日头条热点" => Ok(NewsCategory::ToutiaoHot),
+            "wallstreetcnhot" | "华尔街见闻热门" => Ok(NewsCategory::WallstreetcnHot),
+            "clshot" | "财联社热门" => Ok(NewsCategory::ClsHot),
+            "thepaperhot" | "澎湃热门" => Ok(NewsCategory::ThepaperHot),
+            "ifenghot" | "凤凰网热门" => Ok(NewsCategory::IfengHot),
             _ => Err(Error::invalid_category(s)),
         }
     }
@@ -121,6 +145,18 @@ impl NewsCategory {
             NewsCategory::BeltAndRoad,
             NewsCategory::Theory,
             NewsCategory::Asean,
+            // NewsNow Hot List categories
+            NewsCategory::WeiboHot,
+            NewsCategory::BaiduHot,
+            NewsCategory::ZhihuHot,
+            NewsCategory::DouyinHot,
+            NewsCategory::BilibiliHot,
+            NewsCategory::TiebaHot,
+            NewsCategory::ToutiaoHot,
+            NewsCategory::WallstreetcnHot,
+            NewsCategory::ClsHot,
+            NewsCategory::ThepaperHot,
+            NewsCategory::IfengHot,
         ]
     }
 
@@ -158,6 +194,18 @@ impl NewsCategory {
             NewsCategory::BeltAndRoad => "一带一路",
             NewsCategory::Theory => "理论",
             NewsCategory::Asean => "中国—东盟商贸资讯平台",
+            // NewsNow Hot List categories
+            NewsCategory::WeiboHot => "微博热搜",
+            NewsCategory::BaiduHot => "百度热搜",
+            NewsCategory::ZhihuHot => "知乎热榜",
+            NewsCategory::DouyinHot => "抖音热点",
+            NewsCategory::BilibiliHot => "B站热搜",
+            NewsCategory::TiebaHot => "贴吧热议",
+            NewsCategory::ToutiaoHot => "今日头条热点",
+            NewsCategory::WallstreetcnHot => "华尔街见闻热门",
+            NewsCategory::ClsHot => "财联社热门",
+            NewsCategory::ThepaperHot => "澎湃热门",
+            NewsCategory::IfengHot => "凤凰网热门",
         }
     }
 
@@ -195,6 +243,18 @@ impl NewsCategory {
             NewsCategory::BeltAndRoad => "一带一路 - 中国新闻网一带一路资讯",
             NewsCategory::Theory => "理论 - 中国新闻网理论动态",
             NewsCategory::Asean => "中国—东盟商贸资讯平台 - 中国新闻网东盟资讯",
+            // NewsNow Hot List categories
+            NewsCategory::WeiboHot => "微博热搜 - 实时热搜榜",
+            NewsCategory::BaiduHot => "百度热搜 - 百度实时热搜",
+            NewsCategory::ZhihuHot => "知乎热榜 - 知乎热门话题",
+            NewsCategory::DouyinHot => "抖音热点 - 抖音热门视频",
+            NewsCategory::BilibiliHot => "B站热搜 - 哔哩哔哩热搜榜",
+            NewsCategory::TiebaHot => "贴吧热议 - 百度贴吧热议话题",
+            NewsCategory::ToutiaoHot => "今日头条热点 - 头条热门资讯",
+            NewsCategory::WallstreetcnHot => "华尔街见闻热门 - 财经资讯",
+            NewsCategory::ClsHot => "财联社热门 - 金融快讯",
+            NewsCategory::ThepaperHot => "澎湃热门 - 澎湃新闻热点",
+            NewsCategory::IfengHot => "凤凰网热门 - 凤凰资讯热点",
         }
     }
 }

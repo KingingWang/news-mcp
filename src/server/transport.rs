@@ -7,7 +7,7 @@ use crate::config::{AppConfig, TransportMode};
 use crate::error::{Error, Result};
 use crate::poller::NewsPoller;
 use crate::server::{NewsMcpHandler, NewsMcpServer};
-use crate::service::{HnService, NewsService, NewsSource};
+use crate::service::{HnService, NewsNowService, NewsService, NewsSource};
 use rust_mcp_sdk::{
     error::McpSdkError,
     event_store,
@@ -190,6 +190,7 @@ pub fn start_poller(config: &AppConfig, cache: Arc<NewsCache>) -> Arc<NewsPoller
     let sources: Vec<Arc<dyn NewsSource>> = vec![
         Arc::new(NewsService::with_config(Arc::new(config.clone()))),
         Arc::new(HnService::new()),
+        Arc::new(NewsNowService::new()),
     ];
     let poller = Arc::new(NewsPoller::new(sources, cache, config.poller.clone()));
 

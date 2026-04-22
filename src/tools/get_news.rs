@@ -28,7 +28,7 @@ pub struct GetNewsTool {
     /// News category
     #[json_schema(
         title = "Category",
-        description = "News category (technology, business, science, health, sports, entertainment, general, world)",
+        description = "News category (e.g. technology, science, hackernews, weibohot, baiduhot, zhihuhot, douyinhot, bilibilihot, tiebahot, toutiaohot, wallstreetcnhot, clshot, thepaperhot, ifenghot, instant, headlines, politics, finance, etc.)",
         default = "technology"
     )]
     pub category: Option<String>,
