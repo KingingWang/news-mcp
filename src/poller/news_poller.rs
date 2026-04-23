@@ -73,7 +73,6 @@ impl NewsPoller {
 
             if let Err(e) = self.poll_once().await {
                 error!("Poll failed: {}", e);
-                // Continue polling even on error
             }
         }
     }

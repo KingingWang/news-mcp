@@ -1,7 +1,7 @@
 //! Tool unit tests
 
-use news_mcp::cache::{NewsArticle, NewsCache, NewsCategory};
-use news_mcp::config::FeedSourceConfig;
+use news_mcp::cache::{ArticleCache, NewsArticle, NewsCache, NewsCategory};
+use news_mcp::config::{ArticleFetchConfig, FeedSourceConfig};
 use news_mcp::tools::{
     create_default_registry, GetCategoriesToolImpl, GetNewsToolImpl, HealthCheckToolImpl,
     RefreshNewsToolImpl, SearchNewsToolImpl, Tool,
@@ -59,6 +59,14 @@ fn create_test_feeds() -> HashMap<String, FeedSourceConfig> {
     HashMap::new()
 }
 
+fn create_test_article_cache() -> Arc<ArticleCache> {
+    Arc::new(ArticleCache::new(100))
+}
+
+fn create_article_fetch_config() -> ArticleFetchConfig {
+    ArticleFetchConfig::default()
+}
+
 // ============================================================================
 // Tool Registry Tests
 // ============================================================================
@@ -66,11 +74,14 @@ fn create_test_feeds() -> HashMap<String, FeedSourceConfig> {
 #[test]
 fn test_tool_registry() {
     let cache = create_test_cache();
+    let article_cache = create_test_article_cache();
+    let article_fetch_config = create_article_fetch_config();
     let feeds = create_test_feeds();
-    let registry = create_default_registry(cache, vec![], feeds);
+    let registry =
+        create_default_registry(cache, article_cache, article_fetch_config, vec![], feeds);
 
     let tools = registry.get_tools();
-    assert_eq!(tools.len(), 5);
+    assert_eq!(tools.len(), 6);
 
     // Verify tool names
     let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
@@ -79,13 +90,17 @@ fn test_tool_registry() {
     assert!(tool_names.contains(&"get_categories".to_string()));
     assert!(tool_names.contains(&"health_check".to_string()));
     assert!(tool_names.contains(&"refresh_news".to_string()));
+    assert!(tool_names.contains(&"get_article_content".to_string()));
 }
 
 #[test]
 fn test_tool_registry_get() {
     let cache = create_test_cache();
+    let article_cache = create_test_article_cache();
+    let article_fetch_config = create_article_fetch_config();
     let feeds = create_test_feeds();
-    let registry = create_default_registry(cache, vec![], feeds);
+    let registry =
+        create_default_registry(cache, article_cache, article_fetch_config, vec![], feeds);
 
     let tool = registry.get("get_news");
     assert!(tool.is_some());

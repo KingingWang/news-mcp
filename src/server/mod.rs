@@ -8,7 +8,7 @@ mod transport;
 pub use handler::*;
 pub use transport::*;
 
-use crate::cache::NewsCache;
+use crate::cache::{create_shared_article_cache, ArticleCache, NewsCache};
 use crate::config::AppConfig;
 use crate::service::{HnService, NewsNowService, NewsService, NewsSource};
 use crate::tools::ToolRegistry;
@@ -21,6 +21,8 @@ pub struct NewsMcpServer {
     config: AppConfig,
     /// News cache
     cache: Arc<NewsCache>,
+    /// Article content cache
+    article_cache: Arc<ArticleCache>,
     /// Tool registry
     tool_registry: Arc<ToolRegistry>,
 }
@@ -28,11 +30,13 @@ pub struct NewsMcpServer {
 impl NewsMcpServer {
     /// Create a new server instance
     pub fn new(config: AppConfig, cache: Arc<NewsCache>) -> Self {
+        let article_cache = create_shared_article_cache(100);
         let tool_registry = Arc::new(ToolRegistry::new());
 
         Self {
             config,
             cache,
+            article_cache,
             tool_registry,
         }
     }
@@ -44,8 +48,13 @@ impl NewsMcpServer {
             Arc::new(HnService::new()),
             Arc::new(NewsNowService::new()),
         ];
+
+        let article_cache = create_shared_article_cache(100);
+
         let tool_registry = Arc::new(crate::tools::create_default_registry(
             cache.clone(),
+            article_cache.clone(),
+            config.article_fetch.clone(),
             sources,
             config.feeds.clone(),
         ));
@@ -53,6 +62,7 @@ impl NewsMcpServer {
         Self {
             config,
             cache,
+            article_cache,
             tool_registry,
         }
     }

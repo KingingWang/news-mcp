@@ -59,6 +59,9 @@ async-trait = "0.1"
 url = "2.5"
 uuid = { version = "1.23", features = ["v4"] }
 
+# HTML parsing for article content extraction
+scraper = "0.22"
+
 [dev-dependencies]
 tokio = { version = "1.50", features = ["full", "test-util"] }
 wiremock = "0.6"

@@ -8,6 +8,32 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::RwLock;
 
+/// Generate a stable ID from URL using simple hash
+fn generate_id_from_url(url: &str) -> String {
+    // Use first 8 chars of URL's MD5-like hash (simple approach)
+    // For simplicity, use base64 of last segment of URL
+    let hash = url
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .last()
+        .map(|s| s.chars().take(12).collect::<String>())
+        .unwrap_or_else(|| url.chars().take(12).collect());
+
+    // Clean up and create a readable ID
+    let clean_hash: String = hash
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
+        .take(8)
+        .collect();
+
+    if clean_hash.is_empty() {
+        // Fallback: use position-based hash
+        format!("art-{:04x}", url.len() % 10000)
+    } else {
+        clean_hash
+    }
+}
+
 /// News category enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -233,10 +259,14 @@ impl std::fmt::Display for NewsCategory {
 /// News article structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewsArticle {
+    /// Article ID (generated from URL hash for stable identification)
+    pub id: String,
     /// Article title
     pub title: String,
     /// Article description/summary
     pub description: Option<String>,
+    /// Full article content (fetched from HTML, may be None if not yet fetched)
+    pub content: Option<String>,
     /// Article URL link
     pub link: String,
     /// Source name
@@ -260,9 +290,37 @@ impl NewsArticle {
         published_at: Option<DateTime<Utc>>,
         author: Option<String>,
     ) -> Self {
+        let id = generate_id_from_url(&link);
         Self {
+            id,
             title,
             description,
+            content: None,
+            link,
+            source,
+            category,
+            published_at,
+            author,
+        }
+    }
+
+    /// Create a new article with full content
+    pub fn with_content(
+        title: String,
+        description: Option<String>,
+        content: Option<String>,
+        link: String,
+        source: String,
+        category: NewsCategory,
+        published_at: Option<DateTime<Utc>>,
+        author: Option<String>,
+    ) -> Self {
+        let id = generate_id_from_url(&link);
+        Self {
+            id,
+            title,
+            description,
+            content,
             link,
             source,
             category,
@@ -400,6 +458,43 @@ impl NewsCache {
             .read()
             .map_err(|e| Error::cache(e.to_string()))?;
         Ok(articles.values().map(|v| v.len()).sum())
+    }
+
+    /// Get article by ID across all categories
+    pub fn get_article_by_id(&self, id: &str) -> Result<Option<NewsArticle>> {
+        let articles = self
+            .articles
+            .read()
+            .map_err(|e| Error::cache(e.to_string()))?;
+
+        for arts in articles.values() {
+            for article in arts {
+                if article.id == id {
+                    return Ok(Some(article.clone()));
+                }
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Update content for an article identified by its URL
+    pub fn update_article_content(&self, url: &str, content: String) -> Result<bool> {
+        let mut articles = self
+            .articles
+            .write()
+            .map_err(|e| Error::cache(e.to_string()))?;
+
+        for arts in articles.values_mut() {
+            for article in arts.iter_mut() {
+                if article.link == url {
+                    article.content = Some(content);
+                    return Ok(true);
+                }
+            }
+        }
+
+        Ok(false)
     }
 
     /// Clear all cached articles

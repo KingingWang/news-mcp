@@ -82,9 +82,12 @@ pub fn format_articles_as_markdown(articles: &[crate::cache::NewsArticle]) -> St
     output.push_str("# News Articles\n\n");
 
     for article in articles {
-        output.push_str(&format!("## {}\n", article.title));
+        output.push_str(&format!("## {}\n\n", article.title));
+        output.push_str(&format!("- **ID**: {}\n\n", article.id));
 
-        if let Some(desc) = &article.description {
+        if let Some(content) = &article.content {
+            output.push_str(&format!("{}\n\n", content));
+        } else if let Some(desc) = &article.description {
             output.push_str(&format!("{}\n\n", desc));
         }
 
@@ -122,9 +125,11 @@ pub fn format_articles_as_text(articles: &[crate::cache::NewsArticle]) -> String
     let mut output = String::new();
 
     for (i, article) in articles.iter().enumerate() {
-        output.push_str(&format!("{}. {}\n", i + 1, article.title));
+        output.push_str(&format!("{}. [{}] {}\n", i + 1, article.id, article.title));
 
-        if let Some(desc) = &article.description {
+        if let Some(content) = &article.content {
+            output.push_str(&format!("   {}\n", content));
+        } else if let Some(desc) = &article.description {
             output.push_str(&format!("   {}\n", desc));
         }
 

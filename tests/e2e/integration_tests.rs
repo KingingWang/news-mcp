@@ -1,7 +1,7 @@
 //! Integration tests
 
-use news_mcp::cache::{NewsArticle, NewsCache, NewsCategory};
-use news_mcp::config::{AppConfig, FeedSourceConfig};
+use news_mcp::cache::{ArticleCache, NewsArticle, NewsCache, NewsCategory};
+use news_mcp::config::{AppConfig, ArticleFetchConfig, FeedSourceConfig};
 use news_mcp::service::NewsService;
 use news_mcp::tools::create_default_registry;
 use rust_mcp_sdk::schema::ContentBlock;
@@ -68,8 +68,11 @@ async fn test_tools_workflow() {
         .unwrap();
 
     // Use tools
+    let article_cache = Arc::new(ArticleCache::new(100));
+    let article_fetch_config = ArticleFetchConfig::default();
     let feeds: HashMap<String, FeedSourceConfig> = HashMap::new();
-    let registry = create_default_registry(cache, vec![], feeds);
+    let registry =
+        create_default_registry(cache, article_cache, article_fetch_config, vec![], feeds);
     let result = registry
         .get("get_news")
         .unwrap()

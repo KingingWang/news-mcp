@@ -2,9 +2,9 @@
 //!
 //! Handles the test subcommand for testing server functionality.
 
-use crate::cache::{NewsCache, NewsCategory};
+use crate::cache::{ArticleCache, NewsCache, NewsCategory};
 use crate::cli::TestCommand;
-use crate::config::FeedSourceConfig;
+use crate::config::{ArticleFetchConfig, FeedSourceConfig};
 use crate::error::Result;
 use crate::tools::create_default_registry;
 use std::collections::HashMap;
@@ -98,12 +98,15 @@ fn test_tools() -> Result<()> {
     println!("Testing tool operations...");
 
     let cache = Arc::new(NewsCache::new(100));
+    let article_cache = Arc::new(ArticleCache::new(100));
+    let article_fetch_config = ArticleFetchConfig::default();
     let feeds: HashMap<String, FeedSourceConfig> = HashMap::new();
-    let registry = create_default_registry(cache, vec![], feeds);
+    let registry =
+        create_default_registry(cache, article_cache, article_fetch_config, vec![], feeds);
 
     // Test tool registry
     let tools = registry.get_tools();
-    assert_eq!(tools.len(), 5);
+    assert_eq!(tools.len(), 6);
     println!("  ✓ Tool registry: {} tools registered", tools.len());
 
     // Test tool names
@@ -113,6 +116,7 @@ fn test_tools() -> Result<()> {
         "get_categories",
         "health_check",
         "refresh_news",
+        "get_article_content",
     ];
     for name in expected_tools {
         assert!(registry.get(name).is_some(), "Tool {} should exist", name);

@@ -17,6 +17,9 @@ pub struct AppConfig {
     pub poller: PollerConfig,
     /// Cache configuration
     pub cache: CacheConfig,
+    /// Article content fetch configuration
+    #[serde(default)]
+    pub article_fetch: ArticleFetchConfig,
     /// Logging configuration
     pub logging: LoggingConfig,
     /// Feed source definitions (category -> list of feed sources)
@@ -81,6 +84,7 @@ impl Default for AppConfig {
             server: ServerConfig::default(),
             poller: PollerConfig::default(),
             cache: CacheConfig::default(),
+            article_fetch: ArticleFetchConfig::default(),
             logging: LoggingConfig::default(),
             feeds: default_feed_sources(),
         }
@@ -417,6 +421,26 @@ impl Default for CacheConfig {
     fn default() -> Self {
         Self {
             max_articles_per_category: default_max_articles(),
+        }
+    }
+}
+
+/// Article content fetch configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArticleFetchConfig {
+    /// HTTP request timeout in seconds for fetching article content
+    #[serde(default = "default_fetch_timeout")]
+    pub fetch_timeout_secs: u64,
+}
+
+fn default_fetch_timeout() -> u64 {
+    10
+}
+
+impl Default for ArticleFetchConfig {
+    fn default() -> Self {
+        Self {
+            fetch_timeout_secs: default_fetch_timeout(),
         }
     }
 }

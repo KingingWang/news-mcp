@@ -87,6 +87,7 @@ fn create_config_from_cmd(cmd: &ServeCommand) -> AppConfig {
         cache: crate::config::CacheConfig {
             max_articles_per_category: cmd.max_articles,
         },
+        article_fetch: crate::config::ArticleFetchConfig::default(),
         logging: crate::config::LoggingConfig {
             level: "info".to_string(),
             enable_console: true,

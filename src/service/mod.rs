@@ -3,10 +3,12 @@
 //! Provides the news service for fetching RSS feeds, Hacker News, and NewsNow hot lists.
 //! All sources implement the [`NewsSource`] trait for extensibility.
 
+mod article_fetcher;
 mod hn_service;
 mod news_service;
 mod newsnow_service;
 
+pub use article_fetcher::*;
 pub use hn_service::*;
 pub use news_service::*;
 pub use newsnow_service::*;
