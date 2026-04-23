@@ -14,6 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Examples directory with usage guides
 - MIT License file
 
+## [0.1.3] - 2026-04-23
+
+### Added
+
+- **Article Content Fetching** - New `get_article_content` tool to fetch full article content by ID
+- Article content cache for high-concurrency access
+- HTML content extraction using `scraper` crate
+- Hot search source detection (微博热搜, 百度热搜, etc.) with clear error messages
+
+### Changed
+
+- **Simplified Tool Set** - Removed `search_news`, `health_check`, and `refresh_news` tools
+  - Focus on core workflow: browse headlines → select by ID → fetch full content
+- Article IDs now shown in `get_news` output for content fetching
+
+### Technical
+
+- Added `ArticleCache` for content caching by URL
+- Added `ArticleFetcher` service for HTML content extraction
+- Clippy clean (zero warnings)
+
 ## [0.1.0] - 2026-04-11
 
 ### Added

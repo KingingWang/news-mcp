@@ -12,7 +12,10 @@ A Rust-based MCP (Model Context Protocol) server for fetching news from RSS feed
 
 - **Background Polling** - Periodically fetches news from RSS sources and caches locally
 - **Multiple Transport Modes** - Supports HTTP, SSE, stdio, and hybrid modes
-- **MCP Tools** - Provides `get_news`, `search_news`, `health_check`, `get_categories`, `refresh_news`
+- **MCP Tools** - Provides `get_news`, `get_categories`, `get_article_content`
+  - `get_news` - Fetch news headlines by category
+  - `get_categories` - List available categories
+  - `get_article_content` - Fetch full article by ID (RSS sources only, not hot search)
 - **Multiple Categories** - Technology, Science, HackerNews, and 21 China News categories
 - **Pluggable Sources** - Extensible `NewsSource` trait for adding custom data sources
 - **In-memory Cache** - High-performance article cache with search functionality
@@ -133,10 +136,8 @@ flowchart TB
 
         subgraph Tools["MCP Tools"]
             GN["get_news"]
-            SN["search_news"]
-            HC["health_check"]
             GC["get_categories"]
-            RN["refresh_news"]
+            GAC["get_article_content"]
         end
     end
 
@@ -184,35 +185,27 @@ Fetch articles by category.
 }
 ```
 
-### search_news
-
-Search cached articles by keyword.
-
-**Parameters:**
-- `query` - Search keyword
-- `category` - Optional category filter
-- `limit` - Number of results
-
-**Example:**
-```json
-{
-  "query": "AI",
-  "category": "technology",
-  "limit": 10
-}
-```
-
-### health_check
-
-Check server status and cache statistics.
-
 ### get_categories
 
 List available news categories with article counts.
 
-### refresh_news
+### get_article_content
 
-Manually refresh the news cache.
+Fetch full article content by article ID. Use this after browsing headlines with `get_news` to read selected articles.
+
+**Note:** Hot search/trending topics (微博热搜, 百度热搜, etc.) do not support content fetching - they are social platform trends, not full articles. Only works for RSS-based sources.
+
+**Parameters:**
+- `id` - Article ID (shown in `get_news` output)
+- `format` - Output format: `markdown`, `json`, `text`
+
+**Example:**
+```json
+{
+  "id": "article-id",
+  "format": "markdown"
+}
+```
 
 ## Categories
 

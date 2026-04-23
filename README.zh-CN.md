@@ -12,7 +12,10 @@
 
 - **后台新闻轮询** - 定时从 RSS 源获取新闻并缓存
 - **多种传输模式** - 支持 HTTP、SSE、stdio 和混合模式
-- **MCP 工具** - 提供 `get_news`、`search_news`、`health_check`、`get_categories`、`refresh_news`
+- **MCP 工具** - 提供 `get_news`、`get_categories`、`get_article_content`
+  - `get_news` - 按分类获取新闻标题
+  - `get_categories` - 列出可用分类
+  - `get_article_content` - 通过 ID 获取文章全文（仅 RSS 源，不支持热搜）
 - **多类别支持** - Technology、Science、HackerNews 及 21 个中国新闻网分类
 - **可插拔新闻源** - 通过 `NewsSource` trait 轻松添加自定义数据源
 - **内存缓存** - 高性能文章缓存，支持搜索功能
