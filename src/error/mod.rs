@@ -270,13 +270,7 @@ impl Error {
         let cat = category.into();
         let valid: Vec<&str> = vec![
             "technology",
-            "business",
             "science",
-            "health",
-            "sports",
-            "entertainment",
-            "general",
-            "world",
             "hackernews",
             "instant",
             "headlines",
@@ -296,7 +290,6 @@ impl Error {
             "law",
             "unitedfront",
             "ethnicunity",
-            "beltandroad",
             "theory",
             "asean",
         ];

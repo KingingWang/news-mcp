@@ -257,12 +257,6 @@ fn default_feed_sources() -> HashMap<String, FeedSourceConfig> {
             "https://www.chinanews.com.cn/rss/mz.xml",
         ),
         (
-            "beltandroad",
-            "一带一路",
-            "一带一路 - 中国新闻网一带一路资讯",
-            "https://www.chinanews.com.cn/rss/ydyl.xml",
-        ),
-        (
             "theory",
             "理论",
             "理论 - 中国新闻网理论动态",

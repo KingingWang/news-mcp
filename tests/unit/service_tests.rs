@@ -17,10 +17,6 @@ fn test_feed_urls() {
     assert!(!tech_urls.is_empty());
     assert!(tech_urls[0].contains("techcrunch"));
 
-    // Business category now uses China News
-    let business_urls = get_feed_urls(&NewsCategory::Business);
-    assert!(business_urls.is_empty()); // No RSS feeds for Business (uses China News categories)
-
     let science_urls = get_feed_urls(&NewsCategory::Science);
     assert!(!science_urls.is_empty());
     assert!(science_urls[0].contains("sciencedaily"));

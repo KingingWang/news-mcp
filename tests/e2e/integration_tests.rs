@@ -35,16 +35,16 @@ fn test_full_workflow() {
 
     let service = NewsService::new();
     let articles = service
-        .parse_feed(sample_feed, NewsCategory::General)
+        .parse_feed(sample_feed, NewsCategory::Technology)
         .unwrap();
 
     // Store in cache
     cache
-        .set_category_news(NewsCategory::General, articles)
+        .set_category_news(NewsCategory::Technology, articles)
         .unwrap();
 
     // Retrieve from cache
-    let cached = cache.get_category_news(&NewsCategory::General).unwrap();
+    let cached = cache.get_category_news(&NewsCategory::Technology).unwrap();
     assert_eq!(cached.len(), 1);
     assert_eq!(cached[0].title, "Breaking News");
 }
@@ -59,12 +59,12 @@ async fn test_tools_workflow() {
         Some("Important story".to_string()),
         "https://example.com/breaking".to_string(),
         "Source".to_string(),
-        NewsCategory::General,
+        NewsCategory::Technology,
         None,
         None,
     );
     cache
-        .set_category_news(NewsCategory::General, vec![article])
+        .set_category_news(NewsCategory::Technology, vec![article])
         .unwrap();
 
     // Use tools
@@ -73,7 +73,7 @@ async fn test_tools_workflow() {
     let result = registry
         .get("get_news")
         .unwrap()
-        .execute(serde_json::json!({"category": "general"}))
+        .execute(serde_json::json!({"category": "technology"}))
         .await
         .unwrap();
     let text = get_text_content(&result);

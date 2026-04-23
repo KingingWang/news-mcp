@@ -13,13 +13,7 @@ use std::sync::RwLock;
 #[serde(rename_all = "lowercase")]
 pub enum NewsCategory {
     Technology,
-    Business,
     Science,
-    Health,
-    Sports,
-    Entertainment,
-    General,
-    World,
     HackerNews,
     // China News categories
     Instant,
@@ -40,7 +34,6 @@ pub enum NewsCategory {
     Law,
     UnitedFront,
     EthnicUnity,
-    BeltAndRoad,
     Theory,
     Asean,
     // NewsNow Hot List categories
@@ -63,13 +56,7 @@ impl std::str::FromStr for NewsCategory {
     fn from_str(s: &str) -> Result<NewsCategory> {
         match s.to_lowercase().as_str() {
             "technology" | "tech" => Ok(NewsCategory::Technology),
-            "business" => Ok(NewsCategory::Business),
             "science" => Ok(NewsCategory::Science),
-            "health" => Ok(NewsCategory::Health),
-            "sports" => Ok(NewsCategory::Sports),
-            "entertainment" => Ok(NewsCategory::Entertainment),
-            "general" => Ok(NewsCategory::General),
-            "world" => Ok(NewsCategory::World),
             "hackernews" | "hn" => Ok(NewsCategory::HackerNews),
             // China News categories
             "instant" | "即时新闻" => Ok(NewsCategory::Instant),
@@ -90,7 +77,6 @@ impl std::str::FromStr for NewsCategory {
             "law" | "法治" => Ok(NewsCategory::Law),
             "unitedfront" | "同心" => Ok(NewsCategory::UnitedFront),
             "ethnicunity" | "铸牢中华民族共同体意识" => Ok(NewsCategory::EthnicUnity),
-            "beltandroad" | "一带一路" => Ok(NewsCategory::BeltAndRoad),
             "theory" | "理论" => Ok(NewsCategory::Theory),
             "asean" | "中国—东盟商贸资讯平台" => Ok(NewsCategory::Asean),
             // NewsNow Hot List categories
@@ -115,13 +101,7 @@ impl NewsCategory {
     pub fn all() -> Vec<NewsCategory> {
         vec![
             NewsCategory::Technology,
-            NewsCategory::Business,
             NewsCategory::Science,
-            NewsCategory::Health,
-            NewsCategory::Sports,
-            NewsCategory::Entertainment,
-            NewsCategory::General,
-            NewsCategory::World,
             NewsCategory::HackerNews,
             // China News categories
             NewsCategory::Instant,
@@ -142,7 +122,6 @@ impl NewsCategory {
             NewsCategory::Law,
             NewsCategory::UnitedFront,
             NewsCategory::EthnicUnity,
-            NewsCategory::BeltAndRoad,
             NewsCategory::Theory,
             NewsCategory::Asean,
             // NewsNow Hot List categories
@@ -164,13 +143,7 @@ impl NewsCategory {
     pub fn display_name(&self) -> &'static str {
         match self {
             NewsCategory::Technology => "Technology",
-            NewsCategory::Business => "Business",
             NewsCategory::Science => "Science",
-            NewsCategory::Health => "Health",
-            NewsCategory::Sports => "Sports",
-            NewsCategory::Entertainment => "Entertainment",
-            NewsCategory::General => "General",
-            NewsCategory::World => "World",
             NewsCategory::HackerNews => "Hacker News",
             // China News categories
             NewsCategory::Instant => "即时新闻",
@@ -191,7 +164,6 @@ impl NewsCategory {
             NewsCategory::Law => "法治",
             NewsCategory::UnitedFront => "同心",
             NewsCategory::EthnicUnity => "铸牢中华民族共同体意识",
-            NewsCategory::BeltAndRoad => "一带一路",
             NewsCategory::Theory => "理论",
             NewsCategory::Asean => "中国—东盟商贸资讯平台",
             // NewsNow Hot List categories
@@ -213,13 +185,7 @@ impl NewsCategory {
     pub fn description(&self) -> &'static str {
         match self {
             NewsCategory::Technology => "Technology news from TechCrunch, Ars Technica, The Verge",
-            NewsCategory::Business => "Business news",
             NewsCategory::Science => "Science news from ScienceDaily",
-            NewsCategory::Health => "Health news",
-            NewsCategory::Sports => "Sports news",
-            NewsCategory::Entertainment => "Entertainment news",
-            NewsCategory::General => "General news",
-            NewsCategory::World => "World news",
             NewsCategory::HackerNews => "Top stories from Hacker News",
             // China News categories
             NewsCategory::Instant => "即时新闻 - 中国新闻网滚动新闻",
@@ -240,7 +206,6 @@ impl NewsCategory {
             NewsCategory::Law => "法治 - 中国新闻网法治新闻",
             NewsCategory::UnitedFront => "同心 - 中国新闻网统战新闻",
             NewsCategory::EthnicUnity => "铸牢中华民族共同体意识 - 中国新闻网民族新闻",
-            NewsCategory::BeltAndRoad => "一带一路 - 中国新闻网一带一路资讯",
             NewsCategory::Theory => "理论 - 中国新闻网理论动态",
             NewsCategory::Asean => "中国—东盟商贸资讯平台 - 中国新闻网东盟资讯",
             // NewsNow Hot List categories

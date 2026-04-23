@@ -15,6 +15,7 @@ pub fn get_feed_urls(category: &NewsCategory) -> Vec<&'static str> {
             "https://www.theverge.com/rss/index.xml",
         ],
         NewsCategory::Science => vec!["https://www.sciencedaily.com/rss/all.xml"],
+        NewsCategory::HackerNews => vec![],
         // China News categories
         NewsCategory::Instant => vec!["https://www.chinanews.com.cn/rss/scroll-news.xml"],
         NewsCategory::Headlines => vec!["https://www.chinanews.com.cn/rss/importnews.xml"],
@@ -34,7 +35,6 @@ pub fn get_feed_urls(category: &NewsCategory) -> Vec<&'static str> {
         NewsCategory::Law => vec!["https://www.chinanews.com.cn/rss/fz.xml"],
         NewsCategory::UnitedFront => vec!["https://www.chinanews.com.cn/rss/tx.xml"],
         NewsCategory::EthnicUnity => vec!["https://www.chinanews.com.cn/rss/mz.xml"],
-        NewsCategory::BeltAndRoad => vec!["https://www.chinanews.com.cn/rss/ydyl.xml"],
         NewsCategory::Theory => vec!["https://www.chinanews.com.cn/rss/theory.xml"],
         NewsCategory::Asean => vec!["https://www.chinanews.com.cn/rss/aseaninfo.xml"],
         _ => vec![],

@@ -31,11 +31,11 @@ fn create_test_cache() -> Arc<NewsCache> {
             None,
         ),
         NewsArticle::new(
-            "Business News".to_string(),
-            Some("Market updates".to_string()),
-            "https://example.com/business".to_string(),
-            "Business Source".to_string(),
-            NewsCategory::Business,
+            "Science News".to_string(),
+            Some("Science updates".to_string()),
+            "https://example.com/science".to_string(),
+            "Science Source".to_string(),
+            NewsCategory::Science,
             None,
             None,
         ),
@@ -45,7 +45,7 @@ fn create_test_cache() -> Arc<NewsCache> {
         .set_category_news(NewsCategory::Technology, vec![articles[0].clone()])
         .unwrap();
     cache
-        .set_category_news(NewsCategory::Business, vec![articles[1].clone()])
+        .set_category_news(NewsCategory::Science, vec![articles[1].clone()])
         .unwrap();
 
     cache
@@ -129,13 +129,13 @@ async fn test_get_news_tool_with_params() {
     let tool = GetNewsToolImpl::new(cache, feeds);
 
     let params = serde_json::json!({
-        "category": "business",
+        "category": "science",
         "limit": 1,
         "format": "text"
     });
 
     let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).contains("Business"));
+    assert!(get_text_content(&result).contains("Science"));
 }
 
 #[tokio::test]
@@ -147,13 +147,11 @@ async fn test_get_news_all_categories() {
     // Test each category
     for category in &[
         "technology",
-        "business",
         "science",
-        "health",
-        "sports",
-        "entertainment",
-        "general",
-        "world",
+        "hackernews",
+        "instant",
+        "headlines",
+        "politics",
     ] {
         let params = serde_json::json!({
             "category": category
@@ -438,7 +436,7 @@ async fn test_get_categories_tool() {
     let result = tool.execute(serde_json::json!({})).await.unwrap();
     let text = get_text_content(&result);
     assert!(text.contains("Technology"));
-    assert!(text.contains("Business"));
+    assert!(text.contains("Science"));
     assert!(text.contains("article"));
 }
 
@@ -450,16 +448,13 @@ async fn test_get_categories_all_present() {
     let result = tool.execute(serde_json::json!({})).await.unwrap();
     let text = get_text_content(&result);
 
-    // All 8 categories should be present
+    // All categories should be present
     for category in &[
         "Technology",
-        "Business",
         "Science",
-        "Health",
-        "Sports",
-        "Entertainment",
-        "General",
-        "World",
+        "Hacker News",
+        "即时新闻",
+        "要闻导读",
     ] {
         assert!(text.contains(category));
     }

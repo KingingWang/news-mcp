@@ -13,23 +13,19 @@ fn test_news_category_from_str() {
         NewsCategory::from_str("tech").unwrap(),
         NewsCategory::Technology
     );
-    assert_eq!(
-        NewsCategory::from_str("business").unwrap(),
-        NewsCategory::Business
-    );
     assert!(NewsCategory::from_str("invalid").is_err());
 }
 
 #[test]
 fn test_news_category_all() {
     let categories = NewsCategory::all();
-    assert_eq!(categories.len(), 41); // 30 original + 11 NewsNow hot list categories
+    assert_eq!(categories.len(), 34); // 27 categories after removing empty ones
 }
 
 #[test]
 fn test_news_category_display() {
     assert_eq!(NewsCategory::Technology.display_name(), "Technology");
-    assert_eq!(NewsCategory::Business.display_name(), "Business");
+    assert_eq!(NewsCategory::Science.display_name(), "Science");
 }
 
 #[test]
@@ -87,7 +83,7 @@ fn test_cache_operations() {
     assert_eq!(retrieved.len(), 2);
 
     // Get empty category
-    let empty = cache.get_category_news(&NewsCategory::Business).unwrap();
+    let empty = cache.get_category_news(&NewsCategory::Science).unwrap();
     assert_eq!(empty.len(), 0);
 }
 
@@ -169,7 +165,7 @@ fn test_cache_categories() {
     let cache = NewsCache::new(100);
 
     let categories = cache.get_all_categories().unwrap();
-    assert_eq!(categories.len(), 41); // 30 original + 11 NewsNow hot list categories
+    assert_eq!(categories.len(), 34); // 27 categories after removing empty ones
 
     for (category, count) in categories {
         assert!(count == 0); // Empty cache
