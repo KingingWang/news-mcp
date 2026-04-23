@@ -2,10 +2,7 @@
 
 use news_mcp::cache::{ArticleCache, NewsArticle, NewsCache, NewsCategory};
 use news_mcp::config::{ArticleFetchConfig, FeedSourceConfig};
-use news_mcp::tools::{
-    create_default_registry, GetCategoriesToolImpl, GetNewsToolImpl, HealthCheckToolImpl,
-    RefreshNewsToolImpl, SearchNewsToolImpl, Tool,
-};
+use news_mcp::tools::{create_default_registry, GetCategoriesToolImpl, GetNewsToolImpl, Tool};
 use rust_mcp_sdk::schema::ContentBlock;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -77,19 +74,15 @@ fn test_tool_registry() {
     let article_cache = create_test_article_cache();
     let article_fetch_config = create_article_fetch_config();
     let feeds = create_test_feeds();
-    let registry =
-        create_default_registry(cache, article_cache, article_fetch_config, vec![], feeds);
+    let registry = create_default_registry(cache, article_cache, article_fetch_config, feeds);
 
     let tools = registry.get_tools();
-    assert_eq!(tools.len(), 6);
+    assert_eq!(tools.len(), 3);
 
     // Verify tool names
     let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
     assert!(tool_names.contains(&"get_news".to_string()));
-    assert!(tool_names.contains(&"search_news".to_string()));
     assert!(tool_names.contains(&"get_categories".to_string()));
-    assert!(tool_names.contains(&"health_check".to_string()));
-    assert!(tool_names.contains(&"refresh_news".to_string()));
     assert!(tool_names.contains(&"get_article_content".to_string()));
 }
 
@@ -99,8 +92,7 @@ fn test_tool_registry_get() {
     let article_cache = create_test_article_cache();
     let article_fetch_config = create_article_fetch_config();
     let feeds = create_test_feeds();
-    let registry =
-        create_default_registry(cache, article_cache, article_fetch_config, vec![], feeds);
+    let registry = create_default_registry(cache, article_cache, article_fetch_config, feeds);
 
     let tool = registry.get("get_news");
     assert!(tool.is_some());
@@ -278,159 +270,6 @@ async fn test_get_news_empty_cache() {
 }
 
 // ============================================================================
-// search_news Tool Tests
-// ============================================================================
-
-#[test]
-fn test_search_news_tool_definition() {
-    let cache = create_test_cache();
-    let feeds = create_test_feeds();
-    let tool = SearchNewsToolImpl::new(cache, feeds);
-
-    let definition = tool.definition();
-    assert_eq!(definition.name, "search_news");
-}
-
-#[tokio::test]
-async fn test_search_news_tool() {
-    let cache = create_test_cache();
-    let feeds = create_test_feeds();
-    let tool = SearchNewsToolImpl::new(cache, feeds);
-
-    let params = serde_json::json!({
-        "query": "Technology"
-    });
-
-    let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).contains("Technology"));
-}
-
-#[tokio::test]
-async fn test_search_news_tool_missing_query() {
-    let cache = create_test_cache();
-    let feeds = create_test_feeds();
-    let tool = SearchNewsToolImpl::new(cache, feeds);
-
-    let result = tool.execute(serde_json::json!({})).await;
-    assert!(result.is_err());
-}
-
-#[tokio::test]
-async fn test_search_news_case_insensitive() {
-    let cache = create_test_cache();
-    let feeds = create_test_feeds();
-    let tool = SearchNewsToolImpl::new(cache, feeds);
-
-    // Lowercase search
-    let params = serde_json::json!({
-        "query": "technology"
-    });
-    let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).contains("Technology"));
-
-    // Uppercase search
-    let params = serde_json::json!({
-        "query": "TECHNOLOGY"
-    });
-    let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).contains("Technology"));
-}
-
-#[tokio::test]
-async fn test_search_news_with_category_filter() {
-    let cache = create_test_cache();
-    let feeds = create_test_feeds();
-    let tool = SearchNewsToolImpl::new(cache, feeds);
-
-    let params = serde_json::json!({
-        "query": "News",
-        "category": "technology"
-    });
-    let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).contains("Technology"));
-}
-
-#[tokio::test]
-async fn test_search_news_no_results() {
-    let cache = create_test_cache();
-    let feeds = create_test_feeds();
-    let tool = SearchNewsToolImpl::new(cache, feeds);
-
-    let params = serde_json::json!({
-        "query": "nonexistent_keyword_xyz123"
-    });
-    let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).contains("No articles found"));
-}
-
-#[tokio::test]
-async fn test_search_news_limit() {
-    let cache = Arc::new(NewsCache::new(100));
-
-    // Add multiple articles
-    for i in 0..20 {
-        let article = NewsArticle::new(
-            format!("Technology Article {}", i),
-            Some("Tech content".to_string()),
-            format!("https://example.com/{}", i),
-            "Source".to_string(),
-            NewsCategory::Technology,
-            None,
-            None,
-        );
-        cache
-            .set_category_news(NewsCategory::Technology, vec![article])
-            .unwrap();
-    }
-
-    let tool = SearchNewsToolImpl::new(cache, create_test_feeds());
-
-    let params = serde_json::json!({
-        "query": "Technology",
-        "limit": 5
-    });
-    let result = tool.execute(params).await.unwrap();
-    let text = get_text_content(&result);
-    // Should only have 5 articles
-    assert!(text.matches("Technology Article").count() <= 5);
-}
-
-#[tokio::test]
-async fn test_search_news_invalid_category() {
-    let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache, create_test_feeds());
-
-    let params = serde_json::json!({
-        "query": "test",
-        "category": "invalid"
-    });
-    let result = tool.execute(params).await;
-    assert!(result.is_err());
-}
-
-#[tokio::test]
-async fn test_search_news_formats() {
-    let cache = create_test_cache();
-    let tool = SearchNewsToolImpl::new(cache, create_test_feeds());
-
-    // JSON format
-    let params = serde_json::json!({
-        "query": "Technology",
-        "format": "json"
-    });
-    let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).starts_with('['));
-
-    // Text format
-    let params = serde_json::json!({
-        "query": "Technology",
-        "format": "text"
-    });
-    let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).contains("1."));
-}
-
-// ============================================================================
 // get_categories Tool Tests
 // ============================================================================
 
@@ -488,124 +327,6 @@ async fn test_get_categories_empty_cache() {
 }
 
 // ============================================================================
-// health_check Tool Tests
-// ============================================================================
-
-#[test]
-fn test_health_check_tool_definition() {
-    let cache = create_test_cache();
-    let tool = HealthCheckToolImpl::new(cache);
-
-    let definition = tool.definition();
-    assert_eq!(definition.name, "health_check");
-}
-
-#[tokio::test]
-async fn test_health_check_tool() {
-    let cache = create_test_cache();
-    let tool = HealthCheckToolImpl::new(cache);
-
-    let result = tool.execute(serde_json::json!({})).await.unwrap();
-    let text = get_text_content(&result);
-    assert!(text.contains("Health Check"));
-    assert!(text.contains("Healthy"));
-    assert!(text.contains("Articles"));
-}
-
-#[tokio::test]
-async fn test_health_check_verbose() {
-    let cache = create_test_cache();
-    let tool = HealthCheckToolImpl::new(cache);
-
-    let params = serde_json::json!({
-        "verbose": true
-    });
-
-    let result = tool.execute(params).await.unwrap();
-    assert!(get_text_content(&result).contains("Last Update"));
-}
-
-#[tokio::test]
-async fn test_health_check_check_types() {
-    let cache = create_test_cache();
-    let tool = HealthCheckToolImpl::new(cache);
-
-    // Test different check types
-    for check_type in &["all", "internal", "external"] {
-        let params = serde_json::json!({
-            "check_type": check_type
-        });
-        let result = tool.execute(params).await.unwrap();
-        assert!(get_text_content(&result).contains("Healthy"));
-    }
-}
-
-#[tokio::test]
-async fn test_health_check_empty_cache() {
-    let cache = create_empty_cache();
-    let tool = HealthCheckToolImpl::new(cache);
-
-    let result = tool.execute(serde_json::json!({})).await.unwrap();
-    let text = get_text_content(&result);
-    assert!(text.contains("Total Articles"));
-    assert!(text.contains("0"));
-}
-
-// ============================================================================
-// refresh_news Tool Tests
-// ============================================================================
-
-#[test]
-fn test_refresh_news_tool_definition() {
-    let cache = create_test_cache();
-    let tool = RefreshNewsToolImpl::new(cache, vec![]);
-
-    let definition = tool.definition();
-    assert_eq!(definition.name, "refresh_news");
-}
-
-#[tokio::test]
-async fn test_refresh_news_tool_execution() {
-    let cache = create_empty_cache();
-    let tool = RefreshNewsToolImpl::new(cache, vec![]);
-
-    // Note: This test makes actual network requests
-    // It may fail if network is unavailable
-    let result = tool.execute(serde_json::json!({})).await;
-
-    // We just verify the tool can be executed
-    // Network failures are acceptable in tests
-    if let Ok(result) = result {
-        let text = get_text_content(&result);
-        assert!(text.contains("Refresh News Status"));
-    }
-}
-
-#[tokio::test]
-async fn test_refresh_news_invalid_category() {
-    let cache = create_empty_cache();
-    let tool = RefreshNewsToolImpl::new(cache, vec![]);
-
-    let params = serde_json::json!({
-        "category": "invalid_category"
-    });
-
-    let result = tool.execute(params).await;
-    assert!(result.is_err());
-}
-
-#[tokio::test]
-async fn test_refresh_news_with_null_params() {
-    let cache = create_empty_cache();
-    let tool = RefreshNewsToolImpl::new(cache, vec![]);
-
-    // Should handle null parameters gracefully
-    let result = tool.execute(serde_json::Value::Null).await;
-    // The tool should attempt to refresh (may fail due to network)
-    assert!(result.is_ok() || result.is_err());
-}
-
-// ============================================================================
 // Integration Tests
 // ============================================================================
 
@@ -628,17 +349,4 @@ async fn test_multiple_tools_workflow() {
         .await
         .unwrap();
     assert!(get_text_content(&result).contains("Technology"));
-
-    // Search news
-    let search_tool = SearchNewsToolImpl::new(cache.clone(), create_test_feeds());
-    let result = search_tool
-        .execute(serde_json::json!({"query": "Technology"}))
-        .await
-        .unwrap();
-    assert!(get_text_content(&result).contains("Technology"));
-
-    // Health check
-    let health_tool = HealthCheckToolImpl::new(cache);
-    let result = health_tool.execute(serde_json::json!({})).await.unwrap();
-    assert!(get_text_content(&result).contains("Healthy"));
 }

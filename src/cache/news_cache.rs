@@ -14,8 +14,7 @@ fn generate_id_from_url(url: &str) -> String {
     // For simplicity, use base64 of last segment of URL
     let hash = url
         .split('/')
-        .filter(|s| !s.is_empty())
-        .last()
+        .rfind(|s| !s.is_empty())
         .map(|s| s.chars().take(12).collect::<String>())
         .unwrap_or_else(|| url.chars().take(12).collect());
 
@@ -305,6 +304,7 @@ impl NewsArticle {
     }
 
     /// Create a new article with full content
+    #[allow(clippy::too_many_arguments)]
     pub fn with_content(
         title: String,
         description: Option<String>,

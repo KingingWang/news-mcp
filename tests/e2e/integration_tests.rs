@@ -71,8 +71,7 @@ async fn test_tools_workflow() {
     let article_cache = Arc::new(ArticleCache::new(100));
     let article_fetch_config = ArticleFetchConfig::default();
     let feeds: HashMap<String, FeedSourceConfig> = HashMap::new();
-    let registry =
-        create_default_registry(cache, article_cache, article_fetch_config, vec![], feeds);
+    let registry = create_default_registry(cache, article_cache, article_fetch_config, feeds);
     let result = registry
         .get("get_news")
         .unwrap()

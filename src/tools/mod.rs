@@ -5,20 +5,13 @@
 mod get_article_content;
 mod get_categories;
 mod get_news;
-mod health_check;
-mod refresh_news;
-mod search_news;
 
 pub use get_article_content::*;
 pub use get_categories::*;
 pub use get_news::*;
-pub use health_check::*;
-pub use refresh_news::*;
-pub use search_news::*;
 
 use crate::cache::{ArticleCache, NewsCache};
 use crate::config::{ArticleFetchConfig, FeedSourceConfig};
-use crate::service::NewsSource;
 use async_trait::async_trait;
 use rust_mcp_sdk::schema::{CallToolError, CallToolResult, Tool as McpTool};
 use std::collections::HashMap;
@@ -92,21 +85,11 @@ pub fn create_default_registry(
     news_cache: Arc<NewsCache>,
     article_cache: Arc<ArticleCache>,
     article_fetch_config: ArticleFetchConfig,
-    sources: Vec<Arc<dyn NewsSource>>,
     feeds: HashMap<String, FeedSourceConfig>,
 ) -> ToolRegistry {
     ToolRegistry::new()
-        .register(Box::new(GetNewsToolImpl::new(
-            news_cache.clone(),
-            feeds.clone(),
-        )))
-        .register(Box::new(SearchNewsToolImpl::new(news_cache.clone(), feeds)))
+        .register(Box::new(GetNewsToolImpl::new(news_cache.clone(), feeds)))
         .register(Box::new(GetCategoriesToolImpl::new(news_cache.clone())))
-        .register(Box::new(HealthCheckToolImpl::new(news_cache.clone())))
-        .register(Box::new(RefreshNewsToolImpl::new(
-            news_cache.clone(),
-            sources,
-        )))
         .register(Box::new(GetArticleContentToolImpl::new(
             news_cache,
             article_cache,

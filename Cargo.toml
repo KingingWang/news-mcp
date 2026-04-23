@@ -60,7 +60,7 @@ url = "2.5"
 uuid = { version = "1.23", features = ["v4"] }
 
 # HTML parsing for article content extraction
-scraper = "0.22"
+scraper = "0.26"
 
 [dev-dependencies]
 tokio = { version = "1.50", features = ["full", "test-util"] }

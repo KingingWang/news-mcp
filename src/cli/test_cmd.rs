@@ -101,23 +101,15 @@ fn test_tools() -> Result<()> {
     let article_cache = Arc::new(ArticleCache::new(100));
     let article_fetch_config = ArticleFetchConfig::default();
     let feeds: HashMap<String, FeedSourceConfig> = HashMap::new();
-    let registry =
-        create_default_registry(cache, article_cache, article_fetch_config, vec![], feeds);
+    let registry = create_default_registry(cache, article_cache, article_fetch_config, feeds);
 
     // Test tool registry
     let tools = registry.get_tools();
-    assert_eq!(tools.len(), 6);
+    assert_eq!(tools.len(), 3);
     println!("  ✓ Tool registry: {} tools registered", tools.len());
 
     // Test tool names
-    let expected_tools = [
-        "get_news",
-        "search_news",
-        "get_categories",
-        "health_check",
-        "refresh_news",
-        "get_article_content",
-    ];
+    let expected_tools = ["get_news", "get_categories", "get_article_content"];
     for name in expected_tools {
         assert!(registry.get(name).is_some(), "Tool {} should exist", name);
         println!("  ✓ Tool '{}' exists", name);
