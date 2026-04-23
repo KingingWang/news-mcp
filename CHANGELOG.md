@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Examples directory with usage guides
 - MIT License file
 
+## [0.1.4] - 2026-04-23
+
+### Fixed
+
+- Fixed flaky `test_newsnow_fetch_all` test to gracefully handle NewsNow API unavailability
+- Tests now pass regardless of network connectivity to external APIs
+
 ## [0.1.3] - 2026-04-23
 
 ### Added
